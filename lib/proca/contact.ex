@@ -57,7 +57,7 @@ defmodule Proca.Contact do
 
   def from_input(contact_input, _action_page) do
     %Proca.Contact{}
-    |> cast(contact_input, [:name, :first_name, :email, :phone])
+    |> cast(contact_input, [:name, :first_name, :last_name, :email, :phone])
     |> validate_required([:name, :first_name])
     |> validate_format(:email, @email_format)
     |> validate_format(:phone, ~r{[0-9+ -]+})
