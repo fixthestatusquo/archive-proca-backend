@@ -49,6 +49,7 @@ defmodule Proca.MixProject do
       {:absinthe_plug, "~> 1.5.0-rc.0"},
       {:cors_plug, "~> 2.0"},
       {:kcl, "~> 1.3.0"},
+      {:amqp, "~> 1.4.0"},
       {:json, "~> 1.3.0"},
       {:phoenix_live_view, "~> 0.12.1"},
       {:pow, "~> 1.0.20"},
