@@ -53,8 +53,22 @@ defmodule ProcaWeb.Resolvers.Contact do
         {:error, "action_page_id: Cannot find Action Page with id=#{id}"}
       action_page ->
         case create_signature(action_page, signature) do
-          {:ok, %Signature{id: _signature_id, fingerprint: fpr}} ->
+          {:ok,
+           %Signature{
+             id: _signature_id,
+             campaign_id: camp_id,
+             action_page_id: ap_id,
+             fingerprint: fpr
+           }
+          } ->
+
+            # Signature created:
+            # - Increment counts
+            # - Return its fingerprint
+            Proca.Server.Stats.increment(camp_id, ap_id)
             {:ok, Base.encode64(fpr)}
+
+
           {:error, %Ecto.Changeset{} = changeset} ->
             {:error, Helper.format_errors(changeset)}
           _ ->
