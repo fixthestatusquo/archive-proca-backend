@@ -77,4 +77,12 @@ defmodule ProcaWeb.Schema.InputTypes do
     field :campaign, non_null(:string)
     field :content, :string
   end
+
+  @desc "Custom field added to action. For signature it can be contact, for mail it can be subject and body"
+  input_object :action_extra_input do
+    @desc "Action Type"
+    field :action_type, non_null(:string)
+    @desc "Other fields that accompany the signature"
+    field :fields, list_of(non_null(:custom_field_input))
+  end
 end

@@ -1,7 +1,9 @@
 defmodule Proca.Signature do
   use Ecto.Schema
+  alias Proca.Repo
+  alias Proca.{Org,Consent,Signature,Contact,ActionPage}
   import Ecto.Changeset
-  alias Proca.{Org,Consent,Signature,Contact}
+  import Ecto.Query
 
   schema "signatures" do
     belongs_to :campaign, Proca.Campaign
@@ -35,7 +37,7 @@ defmodule Proca.Signature do
     [contact]
   end
 
-  def build(contact, action_page, consents) do
+  def changeset_recipients(contact, action_page, consents) do
     # could be 2 consents here for AP and Camp owners...
     with keys <- Org.get_public_keys(action_page.org) |> Org.active_public_keys(),
          [cch] <- maybe_encrypt(contact, keys), 
@@ -47,5 +49,32 @@ defmodule Proca.Signature do
       |> put_assoc(:action_page, action_page)
       |> put_assoc(:contacts, [cch2])
     end
+  end
+
+  def changeset_action_contact(action_page, %{contact: contact, privacy: cons}) do
+    data_mod = ActionPage.data_module(action_page)
+
+    case apply(data_mod, :from_input, [contact]) do
+      %{valid?: true} = data ->
+        with contact = %{valid?: true} <- apply(data_mod, :to_contact, [data, action_page]),
+             sig = %{valid?: true} <- changeset_recipients(contact, action_page, cons),
+             sig_fpr = %{valid?: true} <- apply(data_mod, :add_fingerprint, [sig, data])
+          do
+          sig_fpr
+          else
+            invalid_data ->
+              {:error, invalid_data}
+        end
+      %{valid?: false} = invalid_data -> {:error, invalid_data}
+    end
+  end
+
+  def find_by_fingerprint(fingerprint, campaign_id) do
+    query = from(s in Signature,
+      where: s.campaign_id == ^campaign_id and s.fingerprint == ^fingerprint,
+      order_by: [desc: :inserted_at],
+      limit: 1
+    )
+    Repo.one(query)
   end
 end
