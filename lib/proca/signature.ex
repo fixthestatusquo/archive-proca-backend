@@ -73,7 +73,7 @@ defmodule Proca.Signature do
     query = from(s in Signature,
       where: s.campaign_id == ^campaign_id and s.fingerprint == ^fingerprint,
       order_by: [desc: :inserted_at],
-      limit: 1
+      limit: 1, preload: [:contacts]
     )
     Repo.one(query)
   end

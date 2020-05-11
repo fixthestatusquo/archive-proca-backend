@@ -36,34 +36,45 @@ defmodule ProcaWeb.Resolvers.Action do
     Proca.Server.Stats.increment(cid, apid)
   end
 
-  defp output(%{fingerprint: fpr}) do
-    Base.encode64(fpr)
+  defp output(sig = %{contacts: contacts, fingerprint: fpr}) do
+    con_ref = %{
+      first_name: nil,
+      fingerprint: Base.encode64(fpr)
+    }
+
+    with [con|_] <- sig.contacts do
+      %{con_ref | first_name: con.first_name}
+    else
+      _ -> con_ref
+    end
   end
 
 
   def add_action_contact(_, signature, _) do # rename signature to action XXX
     with {:ok, action_page} <- get_action_page(signature),           # action page resolve
 
+                                                                     # changeset of signature
     signature_changes = %{valid?: true} <- Signature.changeset_action_contact(action_page, signature)
-    |> add_tracking(signature),                               # changeset of signature
+    |> add_tracking(signature),
 
-         {:ok, signature} <- Repo.insert(signature_changes)   # create signature
-                       # XXX changeset of action
-                       # XXX put_assoc signature action
-                       # XXX add tracking
-           do
+    {:ok, signature} <- Repo.insert(signature_changes)   # create signature
 
-           # increment stats
-           increment_counter(signature)
+    # XXX changeset of action
+    # XXX put_assoc signature action
+    # XXX add tracking
+      do
 
-           # format return value 
-           {:ok, output(signature)}
+      # increment stats
+      increment_counter(signature)
 
-           else
-             {:error, %Ecto.Changeset{} = changeset} ->
-               {:error, Helper.format_errors(changeset)}
-             {:error, msg} -> {:error, msg}
-             _ ->
+      # format return value 
+      {:ok, output(signature)}
+
+      else
+        {:error, %Ecto.Changeset{} = changeset} ->
+          {:error, Helper.format_errors(changeset)}
+        {:error, msg} -> {:error, msg}
+      _ ->
                {:error, "other error?"}
     end
   end
@@ -80,6 +91,7 @@ defmodule ProcaWeb.Resolvers.Action do
     with {:ok, action_page} <- get_action_page(action),           # action page resolve
 
     %Signature{} = signature <- get_signature(action_page, action)   # find signature
+
     # XXX changeset of action
     # XXX put_assoc signature action
     # XXX add tracking
@@ -88,6 +100,7 @@ defmodule ProcaWeb.Resolvers.Action do
       # increment stats
       increment_counter(signature)
 
+      IO.inspect(signature.contacts, label: "Contacts")
       # format return value 
       {:ok, output(signature)}
 

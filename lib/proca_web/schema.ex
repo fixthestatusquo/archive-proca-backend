@@ -53,7 +53,7 @@ defmodule ProcaWeb.Schema do
     end
 
     @desc "Adds an action referencing contact data via contactRef"
-    field :add_action, type: :id do
+    field :add_action, type: :contact_reference do
       arg :action_page_id, non_null(:id)
       @desc "Action data"
       arg :action, non_null(:action_extra_input)
@@ -68,7 +68,7 @@ defmodule ProcaWeb.Schema do
     end
 
     @desc "Adds an action with contact data"
-    field :add_action_contact, type: :id do
+    field :add_action_contact, type: :contact_reference do
       arg :action_page_id, non_null(:id)
       @desc "Action data"
       arg :action, :action_extra_input
