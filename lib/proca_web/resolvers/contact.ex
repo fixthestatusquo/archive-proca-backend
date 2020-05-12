@@ -31,7 +31,7 @@ defmodule ProcaWeb.Resolvers.Contact do
     case apply(data_mod, :from_input, [contact]) do
       %{valid?: true} = data ->
         with contact = %{valid?: true} <- apply(data_mod, :to_contact, [data, action_page]),
-             sig = %{valid?: true} <- Signature.build(contact, action_page, cons),
+             sig = %{valid?: true} <- Signature.changeset_recipients(contact, action_page, cons),
                sig_fpr = %{valid?: true} <- apply(data_mod, :add_fingerprint, [sig, data])
           do
           sig_fpr
