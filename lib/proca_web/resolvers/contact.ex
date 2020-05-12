@@ -54,7 +54,7 @@ defmodule ProcaWeb.Resolvers.Contact do
       action_page ->
         case create_signature(action_page, signature) do
           {:ok, %Signature{id: _signature_id, fingerprint: fpr}} ->
-            {:ok, Base.encode64(fpr)}
+            {:ok, Base.url_encode64(fpr)}
           {:error, %Ecto.Changeset{} = changeset} ->
             {:error, Helper.format_errors(changeset)}
           _ ->
