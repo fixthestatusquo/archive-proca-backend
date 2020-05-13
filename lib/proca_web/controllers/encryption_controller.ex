@@ -92,14 +92,14 @@ defmodule ProcaWeb.EncryptionController do
 
   def changeset_to_base64(ch = %{changes: pk}) do
     %{ch | changes:
-      %{pk | private: Base.encode64(pk.private),
-        public: Base.encode64(pk.public)}
+      %{pk | private: PublicKey.base_encode(pk.private),
+        public: PublicKey.base_encode(pk.public)}
     }
   end
 
   def changeset_from_base64(ch = %{changes: pk = %{public: public}}) do
-    bad_format_err = "must be 32 bytes, Base64 encoded"
-    with {:ok, pub} <- Base.decode64(public),
+    bad_format_err = "must be 32 bytes, Base64url encoded (RFC4648, no padding)"
+    with {:ok, pub} <- PublicKey.base_decode(public),
          32 <- byte_size(pub) do
           {
             :ok,

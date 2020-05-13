@@ -66,7 +66,7 @@ defmodule ProcaWeb.Resolvers.Contact do
             # - Increment counts
             # - Return its fingerprint
             Proca.Server.Stats.increment(camp_id, ap_id)
-            {:ok, Base.encode64(fpr)}
+            {:ok, Signature.base_encode(fpr)}
 
 
           {:error, %Ecto.Changeset{} = changeset} ->
@@ -76,5 +76,4 @@ defmodule ProcaWeb.Resolvers.Contact do
         end
     end
   end
-
 end

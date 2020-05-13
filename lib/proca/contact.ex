@@ -55,4 +55,12 @@ defmodule Proca.Contact do
              end
     [enc_ch | encrypt(contact_ch, public_keys)]
   end
+
+  def base_encode(data) when is_bitstring(data) do
+    Base.url_encode64(data, padding: false)
+  end
+
+  def base_decode(encoded) when is_bitstring(encoded) do
+    Base.url_decode64(encoded, padding: false)
+  end
 end

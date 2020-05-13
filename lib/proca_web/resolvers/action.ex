@@ -36,13 +36,13 @@ defmodule ProcaWeb.Resolvers.Action do
     Proca.Server.Stats.increment(cid, apid)
   end
 
-  defp output(sig = %{contacts: contacts, fingerprint: fpr}) do
+  defp output(%{contacts: contacts, fingerprint: fpr}) do
     con_ref = %{
       first_name: nil,
-      fingerprint: Base.encode64(fpr)
+      fingerprint: Signature.base_encode(fpr)
     }
 
-    with [con|_] <- sig.contacts do
+    with [con|_] <- contacts do
       %{con_ref | first_name: con.first_name}
     else
       _ -> con_ref
@@ -81,9 +81,9 @@ defmodule ProcaWeb.Resolvers.Action do
 
 
   def get_signature(action_page, %{contact_ref: cref}) do
-    case Base.decode64(cref) do
+    case Signature.base_decode(cref) do
       {:ok, fpr} -> Signature.find_by_fingerprint(fpr, action_page.campaign_id)
-      :error -> {:error, "contact_ref: Cannot decode from Base64"}
+      :error -> {:error, "contact_ref: Cannot decode from Base64url"}
     end
   end
 

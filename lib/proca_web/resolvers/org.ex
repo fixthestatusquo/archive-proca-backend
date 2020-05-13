@@ -97,10 +97,11 @@ defmodule ProcaWeb.Resolvers.Org do
     {
       :ok,
       %{
-        public_key: Base.encode64(my_pk.public),
+        public_key: PublicKey.base_encode(my_pk.public),
         list: Enum.map(sigs, fn s -> %{s |
-                                       nonce: Base.encode64(s.nonce),
-                                       contact: Base.encode64(s.contact)}
+                                       nonce: Contact.base_encode(s.nonce),
+                                       contact: Contact.base_encode(s.contact)
+                                      }
         end)
       }
     }
