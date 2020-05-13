@@ -61,7 +61,7 @@ defmodule Proca.Contact.BasicData do
   @impl Data
   def add_fingerprint(signature, chst) do
     with %{changes: %{email: email}} <- chst,
-    seed <- Application.get_env(:proca, Proca.Signature)[:fpr_seed],
+    seed <- Application.get_env(:proca, Proca.Supporter)[:fpr_seed],
          hash <- :crypto.hash(:sha256, seed <> email) do
       put_change(signature, :fingerprint, hash)
     else

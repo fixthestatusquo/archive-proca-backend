@@ -3,7 +3,7 @@ defmodule ProcaWeb.Resolvers.Contact do
   import Ecto.Changeset
 
   alias Proca.ActionPage
-  alias Proca.Signature
+  alias Proca.Supporter
   alias Proca.Contact
   alias Proca.Repo
   alias Proca.Source
@@ -31,7 +31,7 @@ defmodule ProcaWeb.Resolvers.Contact do
     case apply(data_mod, :from_input, [contact]) do
       %{valid?: true} = data ->
         with contact = %{valid?: true} <- apply(data_mod, :to_contact, [data, action_page]),
-             sig = %{valid?: true} <- Signature.changeset_recipients(contact, action_page, cons),
+             sig = %{valid?: true} <- Supporter.changeset_recipients(contact, action_page, cons),
                sig_fpr = %{valid?: true} <- apply(data_mod, :add_fingerprint, [sig, data])
           do
           sig_fpr
@@ -54,7 +54,7 @@ defmodule ProcaWeb.Resolvers.Contact do
       action_page ->
         case create_signature(action_page, signature) do
           {:ok,
-           %Signature{
+           %Supporter{
              id: _signature_id,
              campaign_id: camp_id,
              action_page_id: ap_id,
@@ -62,11 +62,11 @@ defmodule ProcaWeb.Resolvers.Contact do
            }
           } ->
 
-            # Signature created:
+            # Supporter created:
             # - Increment counts
             # - Return its fingerprint
             Proca.Server.Stats.increment(camp_id, ap_id)
-            {:ok, Signature.base_encode(fpr)}
+            {:ok, Supporter.base_encode(fpr)}
 
 
           {:error, %Ecto.Changeset{} = changeset} ->

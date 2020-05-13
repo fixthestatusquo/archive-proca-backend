@@ -1,6 +1,6 @@
 defmodule Proca.Server.Stats do
   use GenServer
-  alias Proca.Signature
+  alias Proca.Supporter
   alias Proca.Repo
   import Ecto.Query
 
@@ -96,7 +96,7 @@ defmodule Proca.Server.Stats do
   end
 
   def calculate() do
-    query = from(s in Signature, order_by: s.inserted_at)
+    query = from(s in Supporter, order_by: s.inserted_at)
     |> distinct([s], s.fingerprint)
     |> subquery()
     |> group_by([s], [s.campaign_id, s.action_page_id])

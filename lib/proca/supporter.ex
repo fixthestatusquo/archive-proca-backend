@@ -1,11 +1,11 @@
-defmodule Proca.Signature do
+defmodule Proca.Supporter do
   use Ecto.Schema
   alias Proca.Repo
-  alias Proca.{Org,Consent,Signature,Contact,ActionPage}
+  alias Proca.{Org,Consent,Supporter,Contact,ActionPage}
   import Ecto.Changeset
   import Ecto.Query
 
-  schema "signatures" do
+  schema "supporters" do
     belongs_to :campaign, Proca.Campaign
     belongs_to :action_page, Proca.ActionPage
     belongs_to :source, Proca.Source
@@ -13,7 +13,7 @@ defmodule Proca.Signature do
     many_to_many(
       :contacts,
       Proca.Contact,
-      join_through: "contact_signatures",
+      join_through: "supporter_contacts",
       on_replace: :delete
     )
 
@@ -44,7 +44,7 @@ defmodule Proca.Signature do
          cons <- Consent.from_opt_in(consents.opt_in),
          cch2 <- put_assoc(cch, :consent, cons)
       do
-      changeset(%Signature{}, %{})
+      changeset(%Supporter{}, %{})
       |> put_assoc(:campaign, action_page.campaign)
       |> put_assoc(:action_page, action_page)
       |> put_assoc(:contacts, [cch2])
@@ -70,7 +70,7 @@ defmodule Proca.Signature do
   end
 
   def find_by_fingerprint(fingerprint, campaign_id) do
-    query = from(s in Signature,
+    query = from(s in Supporter,
       where: s.campaign_id == ^campaign_id and s.fingerprint == ^fingerprint,
       order_by: [desc: :inserted_at],
       limit: 1, preload: [:contacts]

@@ -3,7 +3,7 @@ defmodule ProcaWeb.Resolvers.Action do
   import Ecto.Changeset
 
   alias Proca.ActionPage
-  alias Proca.Signature
+  alias Proca.Supporter
   alias Proca.Contact
   alias Proca.Repo
   alias Proca.Source
@@ -39,7 +39,7 @@ defmodule ProcaWeb.Resolvers.Action do
   defp output(%{contacts: contacts, fingerprint: fpr}) do
     con_ref = %{
       first_name: nil,
-      fingerprint: Signature.base_encode(fpr)
+      fingerprint: Supporter.base_encode(fpr)
     }
 
     with [con|_] <- contacts do
@@ -54,7 +54,7 @@ defmodule ProcaWeb.Resolvers.Action do
     with {:ok, action_page} <- get_action_page(signature),           # action page resolve
 
                                                                      # changeset of signature
-    signature_changes = %{valid?: true} <- Signature.changeset_action_contact(action_page, signature)
+    signature_changes = %{valid?: true} <- Supporter.changeset_action_contact(action_page, signature)
     |> add_tracking(signature),
 
     {:ok, signature} <- Repo.insert(signature_changes)   # create signature
@@ -81,8 +81,8 @@ defmodule ProcaWeb.Resolvers.Action do
 
 
   def get_signature(action_page, %{contact_ref: cref}) do
-    case Signature.base_decode(cref) do
-      {:ok, fpr} -> Signature.find_by_fingerprint(fpr, action_page.campaign_id)
+    case Supporter.base_decode(cref) do
+      {:ok, fpr} -> Supporter.find_by_fingerprint(fpr, action_page.campaign_id)
       :error -> {:error, "contact_ref: Cannot decode from Base64url"}
     end
   end
@@ -90,7 +90,7 @@ defmodule ProcaWeb.Resolvers.Action do
   def add_action(_, action = %{contact_ref: _cref}, _) do
     with {:ok, action_page} <- get_action_page(action),           # action page resolve
 
-    %Signature{} = signature <- get_signature(action_page, action)   # find signature
+    %Supporter{} = signature <- get_signature(action_page, action)   # find signature
 
     # XXX changeset of action
     # XXX put_assoc signature action

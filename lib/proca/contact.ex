@@ -16,7 +16,7 @@ defmodule Proca.Contact do
 
     many_to_many(
       :signatures,
-      Proca.Signature,
+      Proca.Supporter,
       join_through: "contact_signatures",
       on_replace: :delete
     )

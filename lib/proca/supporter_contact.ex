@@ -1,10 +1,10 @@
-defmodule Proca.ContactSignature do
+defmodule Proca.SupporterContact do
   use Ecto.Schema
   import Ecto.Changeset
 
-  schema "contact_signatures" do
+  schema "supporter_contacts" do
     field :contact_id, :id
-    field :signature_id, :id
+    field :supporter_id, :id
   end
 
   @doc false
