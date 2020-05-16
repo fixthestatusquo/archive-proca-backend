@@ -1,7 +1,6 @@
 defmodule Proca.Contact do
   use Ecto.Schema
   import Ecto.Changeset
-#   alias Proca.{Repo,Org}
 
   schema "contacts" do
     field :address, :string
@@ -24,7 +23,6 @@ defmodule Proca.Contact do
     timestamps()
   end
 
-
   @doc false
   def changeset(contact, attrs) do
     contact
@@ -39,20 +37,24 @@ defmodule Proca.Contact do
   end
 
   def encrypt(contact_ch, [pk | public_keys]) do
-    enc_ch = case contact_ch do
-               %{changes: %{payload: payload}} ->
-                 case Proca.Server.Encrypt.encrypt(pk, payload) do
-                   {penc, nonce} when is_binary(penc) ->
-                     contact_ch
-                     |> put_change(:payload, penc)
-                     |> put_change(:crypto_nonce, nonce)
-                     |> put_assoc(:public_key, pk)
-                   {:error, msg} ->
-                     add_error(contact_ch, :payload, msg)
-                 end
-               no_payload ->
-                 add_error(no_payload, :payload, "Contact payload required to encrypt")
-             end
+    enc_ch =
+      case contact_ch do
+        %{changes: %{payload: payload}} ->
+          case Proca.Server.Encrypt.encrypt(pk, payload) do
+            {penc, nonce} when is_binary(penc) ->
+              contact_ch
+              |> put_change(:payload, penc)
+              |> put_change(:crypto_nonce, nonce)
+              |> put_assoc(:public_key, pk)
+
+            {:error, msg} ->
+              add_error(contact_ch, :payload, msg)
+          end
+
+        no_payload ->
+          add_error(no_payload, :payload, "Contact payload required to encrypt")
+      end
+
     [enc_ch | encrypt(contact_ch, public_keys)]
   end
 
