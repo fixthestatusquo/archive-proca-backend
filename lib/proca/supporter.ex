@@ -75,10 +75,11 @@ defmodule Proca.Supporter do
   # should be able to reach the supporter record. This should not, however,
   # reach other orgs supporters
   @doc "Returns %Supporter{} or nil"
-  def find_by_fingerprint(fingerprint, campaign_id) do
+  def find_by_fingerprint(fingerprint, org_id) do
     query =
       from(s in Supporter,
-        where: s.campaign_id == ^campaign_id and s.fingerprint == ^fingerprint,
+        join: ap in ActionPage, on: s.action_page_id == ap.id,
+        where: ap.org_id == ^org_id and s.fingerprint == ^fingerprint,
         order_by: [desc: :inserted_at],
         limit: 1,
         preload: [:contacts]

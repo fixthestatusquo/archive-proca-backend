@@ -52,7 +52,7 @@ defmodule ProcaWeb.Resolvers.Action do
   def get_supporter(action_page, %{contact_ref: cref}) do
     case Supporter.base_decode(cref) do
       {:ok, fpr} ->
-        case Supporter.find_by_fingerprint(fpr, action_page.campaign_id) do
+        case Supporter.find_by_fingerprint(fpr, action_page.org_id) do
           s = %Supporter{} -> {:ok, s}
           nil -> {:ok, cref}
         end
