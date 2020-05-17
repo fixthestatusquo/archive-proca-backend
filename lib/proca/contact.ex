@@ -12,13 +12,7 @@ defmodule Proca.Contact do
     field :phone, :string
     belongs_to :public_key, Proca.PublicKey
     has_one :consent, Proca.Consent
-
-    many_to_many(
-      :signatures,
-      Proca.Supporter,
-      join_through: "contact_signatures",
-      on_replace: :delete
-    )
+    belongs_to :supporter, Proca.Supporter
 
     timestamps()
   end

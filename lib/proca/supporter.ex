@@ -6,16 +6,11 @@ defmodule Proca.Supporter do
   import Ecto.Query
 
   schema "supporters" do
+    has_many :contacts, Proca.Contact
+
     belongs_to :campaign, Proca.Campaign
     belongs_to :action_page, Proca.ActionPage
     belongs_to :source, Proca.Source
-
-    many_to_many(
-      :contacts,
-      Proca.Contact,
-      join_through: "supporter_contacts",
-      on_replace: :delete
-    )
 
     field :fingerprint, :binary
     has_many :actions, Proca.Action

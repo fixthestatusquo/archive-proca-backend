@@ -3,7 +3,7 @@ defmodule ProcaWeb.Resolvers.Org do
   import Ecto.Changeset
   import Ecto.Query
 
-  alias Proca.{ActionPage,Campaign,Contact,Consent,SupporterContact,Supporter,Source}
+  alias Proca.{ActionPage,Campaign,Contact,Consent,Supporter,Source}
   alias Proca.{Org,Staffer,PublicKey}
 
   alias Proca.Repo
@@ -58,8 +58,7 @@ defmodule ProcaWeb.Resolvers.Org do
 
   defp org_signatures(org) do
     from(s in Supporter,
-      join: x in SupporterContact, on: x.signature_id == s.id,
-      join: c in Contact, on: x.contact_id == c.id,
+      join: c in Contact, on: c.supporter_id == s.id,
       join: g in Consent, on: g.contact_id == c.id,
       join: pk in PublicKey, on: pk.id == c.public_key_id,
       join: ap in ActionPage, on: s.action_page_id == ap.id,
