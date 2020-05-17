@@ -4,7 +4,7 @@ defmodule Proca.Repo.Migrations.CreateActions do
   def change do
     create table(:actions) do
       add :ref, :bytea, null: true
-      add :supporter_id, references(:supporters), null: true
+      add :supporter_id, references(:supporters, on_delete: :nilify_all), null: true
 
       add :action_type, :string, null: :false
 
