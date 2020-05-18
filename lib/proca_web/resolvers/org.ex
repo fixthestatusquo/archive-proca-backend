@@ -59,7 +59,7 @@ defmodule ProcaWeb.Resolvers.Org do
   defp org_signatures(org) do
     from(s in Supporter,
       join: c in Contact, on: c.supporter_id == s.id,
-      join: g in Consent, on: g.contact_id == c.id,
+      join: g in Consent, on: g.supporter_id == s.id,
       join: pk in PublicKey, on: pk.id == c.public_key_id,
       join: ap in ActionPage, on: s.action_page_id == ap.id,
       order_by: [asc: s.id],

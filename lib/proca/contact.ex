@@ -11,7 +11,6 @@ defmodule Proca.Contact do
     field :name, :string
     field :phone, :string
     belongs_to :public_key, Proca.PublicKey
-    has_one :consent, Proca.Consent
     belongs_to :supporter, Proca.Supporter
 
     timestamps()
@@ -30,6 +29,7 @@ defmodule Proca.Contact do
     []
   end
 
+  @spec encrypt(Ecto.Changeset.t(), [Proca.PublicKey]) :: [Ecto.Changeset.t()]
   def encrypt(contact_ch, [pk | public_keys]) do
     enc_ch =
       case contact_ch do

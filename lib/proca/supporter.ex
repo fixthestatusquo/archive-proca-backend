@@ -7,6 +7,7 @@ defmodule Proca.Supporter do
 
   schema "supporters" do
     has_many :contacts, Proca.Contact
+    has_one :consent, Proca.Consent
 
     belongs_to :campaign, Proca.Campaign
     belongs_to :action_page, Proca.ActionPage
@@ -25,36 +26,52 @@ defmodule Proca.Supporter do
     |> validate_required([])
   end
 
-  def maybe_encrypt(contact, [pk]) do
-    Contact.encrypt(contact, [pk])
-  end
-
-  def maybe_encrypt(contact, []) do
-    [contact]
-  end
-
-  def distribute_personal_data(contact, action_page, consents) do
-    # could be 2 consents here for AP and Camp owners...
-    with keys <- Org.get_public_keys(action_page.org) |> Org.active_public_keys(),
-         [cch] <- maybe_encrypt(contact, keys),
-         cons <- Consent.from_opt_in(consents.opt_in),
-         cch2 <- put_assoc(cch, :consent, cons) do
-      changeset(%Supporter{}, %{})
-      |> put_assoc(:campaign, action_page.campaign)
-      |> put_assoc(:action_page, action_page)
-      |> put_assoc(:contacts, [cch2])
+  def maybe_encrypt(contact, recipients) do
+    case Proca.Supporter.Privacy.is_encrypted(recipients) do
+      {true, keys} -> Contact.encrypt(contact, keys)
+      false -> [contact]
     end
   end
 
-  def create_supporter(action_page, %{contact: contact, privacy: cons}) do
+  def distribute_personal_data(new_supporter, new_contact, action_page, privacy) do
+    with recipients <- Proca.Supporter.Privacy.recipients(action_page, privacy),
+         distributed_contacts <- maybe_encrypt(new_contact, recipients),
+         consent <- Consent.from_privacy(privacy) do
+      new_supporter
+      |> put_assoc(:campaign, action_page.campaign)
+      |> put_assoc(:action_page, action_page)
+      |> put_assoc(:contacts, distributed_contacts)
+      |> put_assoc(:consent, consent)
+    end
+  end
+
+  def privacy_defaults(%{opt_in: _opt_in, lead_opt_in: _lead_opt_in} = p) do
+    p
+  end
+
+  def privacy_defaults(%{opt_in: _opt_in} = p) do
+    Map.put(p, :lead_opt_in, false)
+  end
+
+  @doc """
+  XXX when we move the personalization fiels from contacts to supporter, then new_supporter will be created in data_mod
+
+  apply(data_mod, :to_contact, [data, action_page])
+  becomes:
+  apply(data_mod, :to_supporter, [data, action_page])
+  """
+  def create_supporter(action_page, %{contact: contact, privacy: privacy}) do
     data_mod = ActionPage.data_module(action_page)
 
     case apply(data_mod, :from_input, [contact]) do
       %{valid?: true} = data ->
-        with contact = %{valid?: true} <- apply(data_mod, :to_contact, [data, action_page]),
-             sup = %{valid?: true} <- distribute_personal_data(contact, action_page, cons),
-             sup_fpr = %{valid?: true} <- apply(data_mod, :add_fingerprint, [sup, data]) do
-          sup_fpr
+        with new_contact = %{valid?: true} <- apply(data_mod, :to_contact, [data, action_page]),
+             new_supporter <- change(%Supporter{}),
+             new_supporter2 = %{valid?: true} <-
+               distribute_personal_data(new_supporter, new_contact, action_page, privacy_defaults(privacy)),
+             new_supporter3 = %{valid?: true} <-
+               apply(data_mod, :add_fingerprint, [new_supporter2, data]) do
+          new_supporter3
         else
           invalid_data ->
             {:error, invalid_data}
@@ -65,15 +82,12 @@ defmodule Proca.Supporter do
     end
   end
 
-  # XXX this should return supporter for all organisation, not just campaign,
-  # because user could save a cookie on one campaign, and then one-click sign
-  # should be able to reach the supporter record. This should not, however,
-  # reach other orgs supporters
   @doc "Returns %Supporter{} or nil"
   def find_by_fingerprint(fingerprint, org_id) do
     query =
       from(s in Supporter,
-        join: ap in ActionPage, on: s.action_page_id == ap.id,
+        join: ap in ActionPage,
+        on: s.action_page_id == ap.id,
         where: ap.org_id == ^org_id and s.fingerprint == ^fingerprint,
         order_by: [desc: :inserted_at],
         limit: 1,

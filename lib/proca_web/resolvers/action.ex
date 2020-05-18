@@ -87,7 +87,7 @@ defmodule ProcaWeb.Resolvers.Action do
     end
   end
 
-  def add_action(_, params = %{contact_ref: cref, action: action_attrs}, _) do
+  def add_action(_, params = %{contact_ref: _cref, action: action_attrs}, _) do
     with {:ok, action_page} <- get_action_page(params),
          {:ok, supporter} <- get_supporter(action_page, params),
          change = %{valid?: true} <-

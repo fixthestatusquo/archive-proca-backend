@@ -24,14 +24,16 @@ defmodule ProcaWeb.Resolvers.Contact do
     sig
   end
 
+  # XXX just reshape the params and use action resolver!
   def create_signature(action_page, signature = %{contact: contact, privacy: cons}) do
     data_mod = ActionPage.data_module(action_page)
 
     case apply(data_mod, :from_input, [contact]) do
       %{valid?: true} = data ->
         with contact = %{valid?: true} <- apply(data_mod, :to_contact, [data, action_page]),
+             new_sup <- change(%Supporter{}),
              sup = %{valid?: true} <-
-               Supporter.distribute_personal_data(contact, action_page, cons),
+               Supporter.distribute_personal_data(new_sup, contact, action_page, cons),
              sup_fpr = %{valid?: true} <- apply(data_mod, :add_fingerprint, [sup, data]) do
           sup_fpr
           |> add_tracking(signature)
@@ -47,32 +49,7 @@ defmodule ProcaWeb.Resolvers.Contact do
     end
   end
 
-  def add_signature(_, signature = %{action_page_id: id}, _) do
-    case ActionPage.find(id) do
-      nil ->
-        {:error, "action_page_id: Cannot find Action Page with id=#{id}"}
-
-      action_page ->
-        case create_signature(action_page, signature) do
-          {:ok,
-           %Supporter{
-             id: _signature_id,
-             campaign_id: camp_id,
-             action_page_id: ap_id,
-             fingerprint: fpr
-           }} ->
-            # Supporter created:
-            # - Increment counts
-            # - Return its fingerprint
-            Proca.Server.Stats.increment(camp_id, ap_id)
-            {:ok, Supporter.base_encode(fpr)}
-
-          {:error, %Ecto.Changeset{} = changeset} ->
-            {:error, Helper.format_errors(changeset)}
-
-          _ ->
-            {:error, "other error?"}
-        end
-    end
+  def add_signature(_, _signature, _) do
+    {:error, "not implemented rn"}
   end
 end
