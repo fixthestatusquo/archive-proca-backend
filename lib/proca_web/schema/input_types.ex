@@ -46,7 +46,7 @@ defmodule ProcaWeb.Schema.InputTypes do
     field :first_name, :string
     @desc "Last name (when you provide full name split into first and last)"
     field :last_name, :string
-    @dest "Email"
+    @desc "Email"
     field :email, :string
     @desc "Contacts phone number"
     field :phone, :string
