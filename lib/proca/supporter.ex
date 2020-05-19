@@ -16,6 +16,9 @@ defmodule Proca.Supporter do
     field :fingerprint, :binary
     has_many :actions, Proca.Action
 
+    field :first_name, :string
+    field :email, :string
+
     timestamps()
   end
 
@@ -24,6 +27,13 @@ defmodule Proca.Supporter do
     supporter
     |> cast(attrs, [])
     |> validate_required([])
+  end
+
+  def from_contact_data(%{valid?: true, changes: attrs}, action_page) do
+    %Supporter{}
+    |> cast(attrs, [:first_name, :email])  ## <- this list must come from action page pipeline needs
+    |> put_assoc(:campaign, action_page.campaign)
+    |> put_assoc(:action_page, action_page)
   end
 
   def maybe_encrypt(contact, recipients) do
@@ -38,8 +48,6 @@ defmodule Proca.Supporter do
          distributed_contacts <- maybe_encrypt(new_contact, recipients),
          consent <- Consent.from_privacy(privacy) do
       new_supporter
-      |> put_assoc(:campaign, action_page.campaign)
-      |> put_assoc(:action_page, action_page)
       |> put_assoc(:contacts, distributed_contacts)
       |> put_assoc(:consent, consent)
     end
@@ -54,30 +62,19 @@ defmodule Proca.Supporter do
   end
 
   @doc """
-  XXX when we move the personalization fiels from contacts to supporter, then new_supporter will be created in data_mod
-
-  apply(data_mod, :to_contact, [data, action_page])
-  becomes:
-  apply(data_mod, :to_supporter, [data, action_page])
   """
   def create_supporter(action_page, %{contact: contact, privacy: privacy}) do
     data_mod = ActionPage.data_module(action_page)
 
-    case apply(data_mod, :from_input, [contact]) do
-      %{valid?: true} = data ->
-        with new_contact = %{valid?: true} <- apply(data_mod, :to_contact, [data, action_page]),
-             new_supporter <- change(%Supporter{}),
-             new_supporter2 = %{valid?: true} <-
-               distribute_personal_data(new_supporter, new_contact, action_page, privacy_defaults(privacy)),
-             new_supporter3 = %{valid?: true} <-
-               apply(data_mod, :add_fingerprint, [new_supporter2, data]) do
-          new_supporter3
-        else
-          invalid_data ->
-            {:error, invalid_data}
-        end
-
-      %{valid?: false} = invalid_data ->
+    with data = %{valid?: true} = data <- apply(data_mod, :from_input, [contact]),
+         {new_contact = %{valid?: true}, fpr} <- apply(data_mod, :to_contact, [data, action_page]),
+           new_supporter = %{valid?: true} <- from_contact_data(data, action_page)
+           |> distribute_personal_data(new_contact, action_page, privacy_defaults(privacy))
+           |> put_change(:fingerprint, fpr)
+    do
+      new_supporter
+    else
+      invalid_data ->
         {:error, invalid_data}
     end
   end

@@ -32,17 +32,17 @@ defmodule ProcaWeb.Resolvers.Action do
     Proca.Server.Stats.increment(cid, apid)
   end
 
-  defp output(%{contacts: contacts, fingerprint: fpr}) do
-    con_ref = %{
-      first_name: nil,
+  defp output(%{first_name: first_name, fingerprint: fpr}) do
+    %{
+      first_name: first_name,
       fingerprint: Supporter.base_encode(fpr)
     }
+  end
 
-    with [con | _] <- contacts do
-      %{con_ref | first_name: con.first_name}
-    else
-      _ -> con_ref
-    end
+  defp output(%{fingerprint: fpr}) do
+    %{
+      fingerprint: Supporter.base_encode(fpr)
+    }
   end
 
   defp output(contact_ref) when is_bitstring(contact_ref) do
@@ -72,6 +72,8 @@ defmodule ProcaWeb.Resolvers.Action do
            Action.create_for_supporter(action, supporter, action_page) |> add_tracking(params),
          {:ok, new_action} <- Repo.insert(change) do
       increment_counter(new_action)
+
+      IO.inspect(supporter, label: "wtf")
 
       # format return value 
       {:ok, output(supporter)}

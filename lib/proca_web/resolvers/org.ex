@@ -14,7 +14,7 @@ defmodule ProcaWeb.Resolvers.Org do
   def find(_, %{name: name}, %{context: %{user: user}}) when not is_nil(user) do
     with %Org{} = org <- Org.get_by_name(name),
          %Staffer{} = s <- Staffer.for_user_in_org(user, org.id),
-           true <- can?(s, :api)
+           true <- can?(s, :use_api)
       do
       {:ok, org}
     else

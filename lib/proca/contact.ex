@@ -1,26 +1,21 @@
 defmodule Proca.Contact do
   use Ecto.Schema
   import Ecto.Changeset
+  alias Proca.Contact
 
   schema "contacts" do
-    field :address, :string
-    field :email, :string
     field :payload, :binary
     field :crypto_nonce, :binary
-    field :first_name, :string
-    field :name, :string
-    field :phone, :string
     belongs_to :public_key, Proca.PublicKey
     belongs_to :supporter, Proca.Supporter
 
     timestamps()
   end
 
-  @doc false
-  def changeset(contact, attrs) do
-    contact
-    |> cast(attrs, [:name, :first_name, :email, :phone, :address, :payload])
-    |> validate_required([:name, :first_name, :payload])
+  def build(attrs) when is_map(attrs) do
+    case JSON.encode(attrs) do
+      {:ok, payload} -> change(%Contact{}, %{ payload: payload })
+    end
   end
 
   @doc "Encrypt this contact changeset for a list of keys.
