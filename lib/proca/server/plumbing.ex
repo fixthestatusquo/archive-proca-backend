@@ -38,7 +38,9 @@ defmodule Proca.Server.Plumbing do
   @impl true
   def handle_continue(:connect, st) do
     with {:ok, c} <- AMQP.Connection.open(st.url) do
-      IO.inspect(c, label: "AMQP.Connection")
+      # inform us when AMQP connection is down
+      Process.monitor(c.pid)
+      
       {
         :noreply,
         %{st | conn: c}
@@ -46,6 +48,12 @@ defmodule Proca.Server.Plumbing do
     else
       {:error, reason} -> {:stop, reason, st}
     end
+  end
+
+  @impl true
+  def handle_info({:DOWN, _, :process, pid, reason}, %{conn: %{ pid: pid }}) do
+    # Stop GenServer. Will be restarted by Supervisor.
+    {:stop, {:connection_lost, reason}, nil}
   end
 
   @impl true

@@ -21,6 +21,10 @@ defmodule Proca.Application do
       {
         Proca.Server.Stats,
         Application.get_env(:proca, Proca)[:stats_sync_interval]
+      },
+      {
+        Proca.Server.Plumbing,
+        Application.get_env(:proca, Proca.Server.Plumbing)[:url]
       }
       # Starts a worker by calling: Proca.Worker.start_link(arg)
       # {Proca.Worker, arg},

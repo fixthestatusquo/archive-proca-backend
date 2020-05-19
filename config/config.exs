@@ -25,6 +25,9 @@ config :proca, Proca,
 config :proca, Proca.Supporter,
   fpr_seed: "4xFc6MsafPEwc6ME"
 
+config :proca, Proca.Server.Plumbing,
+  url: "amqp://proca:proca@rabbitmq.docker/proca"
+
 # Configures Elixir's Logger
 config :logger,
   backends: [:console, Sentry.LoggerBackend],
