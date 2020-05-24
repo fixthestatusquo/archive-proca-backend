@@ -50,15 +50,16 @@ defmodule Proca.Server.Plumbing do
   ## Queues:
 
   ```
-               ___ *.system.supporter        -> email.confirm (double opt in)
+               ___ *.system.supporter        -> sys.email.confirm (double opt in)
               /
   confirm ---*---- ORG_NAME.custom.supporter -> ORG_NAME.confirm
               \___ ORG_NAME.custom.action    -> ORG_NAME.moderate
 
 
-               ___ *.system.* -> email.thankyou
+               ___ *.system.* -> sys.email.thankyou
               /
   deliver ---*---- ORG_NAME.*.* -> ORG_NAME.crm
+  
 
 
   ```
@@ -145,8 +146,8 @@ defmodule Proca.Server.Plumbing do
 
   def setup_global_queues(connection) do
     queues =  [
-      {"confirm", "*.system.supporter", "email.confirm"},
-      {"deliver", "*.system.*", "email.thankyou"}
+      {"confirm", "*.system.supporter", "system.email.confirm"},
+      {"deliver", "*.system.*", "system.email.thankyou"}
     ]
     setup_queues(connection, queues)
   end
@@ -165,8 +166,8 @@ defmodule Proca.Server.Plumbing do
   """
   def setup_org_queues(connection, %Org{name: org_name}) do
     queues = [
-      {"confirm", "#{org_name}.custom.supporter", "#{org_name}.confirm"},
-      {"confirm", "#{org_name}.custom.action", "#{org_name}.moderate"}
+      {"confirm", "#{org_name}.custom.supporter", "custom.#{org_name}.confirm"},
+      {"confirm", "#{org_name}.custom.action", "custom.#{org_name}.moderate"}
     ]
     setup_queues(connection, queues)
   end
@@ -182,13 +183,13 @@ defmodule Proca.Server.Plumbing do
   end
 
   def create_org_queue(connection, %Org{name: org_name}, {ex, rk, qn}) do
-    setup_queues(connection, [{ex, "#{org_name}.#{rk}", "#{org_name}.#{qn}"}])
+    setup_queues(connection, [{ex, "#{org_name}.#{rk}", "custom.#{org_name}.#{qn}"}])
   end
 
   # what happens on error? who retries? nmaybe this should be escalated to ui
   def drop_org_queue(connection, %Org{name: org_name}, {_ex, _rk, qn}) do
     with_chan(connection, fn chan ->
-      Queue.delete(chan, "#{org_name}.#{qn}", if_unused: true, if_empty: true)
+      Queue.delete(chan, "custom.#{org_name}.#{qn}", if_unused: true, if_empty: true)
     end)
   end
 
@@ -212,5 +213,4 @@ defmodule Proca.Server.Plumbing do
       Channel.close(chan)
     end
   end
-
 end

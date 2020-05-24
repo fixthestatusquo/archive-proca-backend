@@ -73,8 +73,6 @@ defmodule ProcaWeb.Resolvers.Action do
          {:ok, new_action} <- Repo.insert(change) do
       increment_counter(new_action)
 
-      IO.inspect(supporter, label: "wtf")
-
       # format return value 
       {:ok, output(supporter)}
     else
