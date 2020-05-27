@@ -15,9 +15,23 @@ defmodule Proca.Server.Processing do
 
   So:
   1. Process supporter, then action
-  2. Process supporter 
+  2. Process supporter
   3. ignore. This is a case where we store action for counts (share, tweet
   without any contact, and it might never arrive). On the other hand, it would be nice to have this later in CRM right? 
+
+     [ A(NEW) / S(NEW) ]           <-----.
+        |                                |  On new action bound to rejected contact
+        v                                |  Do we reset?
+     [ A(NEW) / S(CONFIRMING)] -> [ A(REJECTED) / S(REJECTED) ]   - - - > (remove the cookie?!)
+        |
+        v
+  ,->[ A(NEW) / S(ACCEPTED)]
+  |     |
+n |     v
+e |  [ A(CONFIRMING) / S(ACCEPTED)] -> [ A(REJECTED) / S(ACCEPTED)] --> x
+w |     |
+  |     v
+  `--[ A(ACCEPTED) / S(ACCEPTED)] -> [ A(DELIVERED) / S(ACCEPTED)]
 
   This mechanism is supposed to be able to run many times with same result if
   action and supporter bits do not change.
