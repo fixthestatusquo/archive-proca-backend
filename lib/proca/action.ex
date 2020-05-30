@@ -11,13 +11,14 @@ defmodule Proca.Action  do
     belongs_to :supporter, Proca.Supporter
 
     field :action_type, :string
-    field :delivery, :boolean
 
     belongs_to :campaign, Proca.Campaign
     belongs_to :action_page, Proca.ActionPage
     belongs_to :source, Proca.Source
 
     has_many :fields, Proca.Field
+
+    field :processing_status, ProcessingStatus, default: :new
 
     timestamps()
   end
@@ -40,7 +41,10 @@ defmodule Proca.Action  do
     |> put_supporter_or_ref(supporter, action_page)
     |> put_assoc(:action_page, action_page)
     |> put_change(:campaign_id, action_page.campaign_id)
-    |> put_assoc(:fields, Field.changesets(attrs.fields))
+    |> put_assoc(:fields, case attrs do
+                            %{fields: fields} -> Field.changesets(fields)
+                            _ -> []
+                          end)
   end
 
   def link_refs_to_supporter(refs, %Supporter{id: id}) when not is_nil(id) and is_list(refs) do

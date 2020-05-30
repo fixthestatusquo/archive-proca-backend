@@ -25,6 +25,9 @@ defmodule Proca.Application do
       {
         Proca.Server.Plumbing,
         Application.get_env(:proca, Proca.Server.Plumbing)[:url]
+      },
+      {
+        Proca.Server.Processing, []
       }
       # Starts a worker by calling: Proca.Worker.start_link(arg)
       # {Proca.Worker, arg},

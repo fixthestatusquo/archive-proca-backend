@@ -1,6 +1,7 @@
 defmodule Proca.Server.Plumbing do
   use GenServer
   alias AMQP.{Channel, Queue, Exchange}
+  import AMQP.Basic
   alias Proca.{Org}
 
   @moduledoc """
@@ -160,9 +161,7 @@ defmodule Proca.Server.Plumbing do
   @doc """
   Org queues:
   - standard
-  - specific: crm, 
-  
-  
+  - specific: crm
   """
   def setup_org_queues(connection, %Org{name: org_name}) do
     queues = [
@@ -190,6 +189,20 @@ defmodule Proca.Server.Plumbing do
   def drop_org_queue(connection, %Org{name: org_name}, {_ex, _rk, qn}) do
     with_chan(connection, fn chan ->
       Queue.delete(chan, "custom.#{org_name}.#{qn}", if_unused: true, if_empty: true)
+    end)
+  end
+
+  @spec push(String.t, String.t, map()) :: :ok | :error
+  def push(exchange, routing_key, data) do
+    options = [
+      mandatory: true,
+      persistent: true
+    ]
+    with_chan(connection(), fn chan ->
+      case JSON.encode(data) do
+        {:ok, payload} -> publish(chan, exchange, routing_key, payload, options)
+        _e -> :error
+      end
     end)
   end
 

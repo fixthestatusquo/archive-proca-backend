@@ -7,11 +7,10 @@ defmodule Proca.Field do
     field :key, :string
     field :value, :string
     belongs_to :action, Proca.Action
-    belongs_to :source, Proca.Source
   end
 
 
-  def changesets(custom_fields) do
+  def changesets(custom_fields) when is_list(custom_fields) do
     custom_fields
     |> Enum.map(fn cf -> changeset(cf) end)
   end

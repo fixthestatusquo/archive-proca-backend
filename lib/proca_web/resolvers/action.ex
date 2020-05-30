@@ -32,6 +32,10 @@ defmodule ProcaWeb.Resolvers.Action do
     Proca.Server.Stats.increment(cid, apid)
   end
 
+  defp process_action(action) do
+    Proca.Server.Processing.process_async(action)
+  end
+
   defp output(%{first_name: first_name, fingerprint: fpr}) do
     %{
       first_name: first_name,
@@ -81,6 +85,7 @@ defmodule ProcaWeb.Resolvers.Action do
 
       link_references(supporter, params)
       increment_counter(new_action)
+      process_action(new_action)
 
       # format return value 
       {:ok, output(supporter)}
@@ -104,6 +109,7 @@ defmodule ProcaWeb.Resolvers.Action do
            |> add_tracking(params),
          {:ok, new_action} <- Repo.insert(change) do
       increment_counter(new_action)
+      process_action(new_action)
 
       {:ok, output(supporter)}
     else
