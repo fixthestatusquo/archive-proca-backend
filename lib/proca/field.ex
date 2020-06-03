@@ -18,5 +18,8 @@ defmodule Proca.Field do
   def changeset(attr = %{key: _key, value: _value}) do
     %Field{}
     |> cast(attr, [:key, :value])
+    |> validate_format(:key, ~r/^([\w\d_-]+$)/)
+    |> validate_length(:key, min: 1, max: 64)
+    |> validate_length(:value, max: 1024)
   end
 end
