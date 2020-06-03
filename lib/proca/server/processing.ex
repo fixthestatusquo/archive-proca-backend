@@ -61,7 +61,6 @@ defmodule Proca.Server.Processing do
 
   @impl true
   def handle_cast({:action, action}, state) do
-    IO.inspect(action, label: "PROCESS(HANDLE CAST ACTION")
     process(action)
     {:noreply, state}
   end

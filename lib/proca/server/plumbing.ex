@@ -117,6 +117,11 @@ defmodule Proca.Server.Plumbing do
   end
 
   @impl true
+  def handle_call(:connection_url, _from, %{url: url} = st) do
+    {:reply, url, st}
+  end
+
+  @impl true
   def handle_cast(:setup, %{conn: c} = s) do
     setup_exchanges(c)
     setup_global_queues(c)
@@ -130,6 +135,10 @@ defmodule Proca.Server.Plumbing do
 
   def connection() do
     GenServer.call(__MODULE__, :connection)
+  end
+
+  def connection_url() do
+    GenServer.call(__MODULE__, :connection_url)
   end
 
   @doc """

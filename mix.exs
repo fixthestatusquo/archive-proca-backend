@@ -51,6 +51,7 @@ defmodule Proca.MixProject do
       {:cors_plug, "~> 2.0"},
       {:kcl, "~> 1.3.0"},
       {:amqp, "~> 1.4.0"},
+      {:broadway_rabbitmq, "~> 0.6.0"},
       {:json, "~> 1.3.0"},
       {:phoenix_live_view, "~> 0.12.1"},
       {:pow, "~> 1.0.20"},
