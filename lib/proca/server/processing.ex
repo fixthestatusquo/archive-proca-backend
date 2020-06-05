@@ -143,7 +143,7 @@ defmodule Proca.Server.Processing do
   @doc "We just pass action id around because we can just retrieve the action and have a synced copy"
   def system_action_data(action) do
     %{
-      action_id: action.id,
+      "actionId" => action.id,
     }
   end
 

@@ -51,4 +51,11 @@ defmodule Proca.Action  do
     from(a in Action, where: is_nil(a.supporter_id) and a.ref in ^refs)
     |> Repo.update_all(set: [supporter_id: id, ref: nil])
   end
+
+  def get_by_id(action_id) do
+    from(a in Action, where: a.id == ^action_id,
+      preload: [:campaign, [action_page: :org], [supporter: :consent]],
+      limit: 1)
+    |> Repo.one
+  end
 end

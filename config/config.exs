@@ -43,6 +43,10 @@ config :proca, :pow,
   web_module: ProcaWeb,
   current_user_assigns_key: :user
 
+config :ex_aws, :hackney_opts,
+  follow_redirect: true,
+  recv_timeout: 10_000
+
 config :sentry,
   environment_name: Mix.env(),
   included_environments: [:prod],

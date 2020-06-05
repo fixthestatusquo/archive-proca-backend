@@ -51,17 +51,19 @@ defmodule Proca.Server.Plumbing do
   ## Queues:
 
   ```
-               ___ *.system.supporter        -> sys.email.confirm (double opt in)
+               ___ *.system.supporter        -> system.email.confirm (double opt in)
               /
   confirm ---*---- ORG_NAME.custom.supporter -> ORG_NAME.confirm
               \___ ORG_NAME.custom.action    -> ORG_NAME.moderate
 
 
-               ___ *.system.* -> sys.email.thankyou
+               ___ *.system.* -> system.email.thankyou
               /
   deliver ---*---- ORG_NAME.*.* -> ORG_NAME.crm
+              \____ ORG1,ORG2,ORG3.system.* -> system.sqs
   
 
+  XXX maybe system.email.confirm can be merged with system.email.thankyou ?
 
   ```
 

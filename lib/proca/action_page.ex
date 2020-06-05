@@ -15,7 +15,9 @@ defmodule Proca.ActionPage do
     belongs_to :org, Proca.Org
 
     field :extra_supporters, :integer, default: 0
-    
+
+    field :thank_you_template_ref, :string
+
     timestamps()
   end
 
