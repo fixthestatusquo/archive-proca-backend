@@ -22,4 +22,18 @@ defmodule Proca.Field do
     |> validate_length(:key, min: 1, max: 64)
     |> validate_length(:value, max: 1024)
   end
+
+  @doc """
+  Converts list of key->value to a map, and if some key is present more then once, the values will be aggregated in an array.
+  """
+  def list_to_map(fields) do
+    fields
+    |> Enum.reduce(%{}, fn %{key: k, value: v},
+      acc ->
+        Map.update(acc, k, v, fn
+          l when is_list(l) -> [v | l]
+          v2 -> [v, v2]
+        end)
+    end)
+  end
 end

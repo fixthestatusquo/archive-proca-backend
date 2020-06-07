@@ -159,7 +159,8 @@ defmodule Proca.Server.Plumbing do
   def setup_global_queues(connection) do
     queues =  [
       {"confirm", "*.system.supporter", "system.email.confirm"},
-      {"deliver", "*.system.*", "system.email.thankyou"}
+      {"deliver", "*.system.*", "system.email.thankyou"},
+      {"system.sqs"}
     ]
     setup_queues(connection, queues)
   end
@@ -222,9 +223,13 @@ defmodule Proca.Server.Plumbing do
   def setup_queues(connection, queue_defs) do
     with_chan(connection, fn chan ->
       queue_defs
-      |> Enum.each(fn {ex, rk, qu} ->
-        {:ok, _stat} = Queue.declare(chan, qu, durable: true)
-        :ok = Queue.bind(chan, qu, ex, routing_key: rk)
+      |> Enum.each(fn df -> case df  do
+                              {ex, rk, qu} ->
+                                {:ok, _stat} = Queue.declare(chan, qu, durable: true)
+                                :ok = Queue.bind(chan, qu, ex, routing_key: rk)
+                              {qu} ->
+                                :ok = Queue.declare(chan, qu, durable: true)
+                            end
       end)
     end)
   end

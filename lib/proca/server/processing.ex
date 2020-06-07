@@ -1,9 +1,10 @@
 defmodule Proca.Server.Processing do
   use GenServer
   alias Proca.Repo
-  alias Proca.{Action, ActionPage, Supporter}
+  alias Proca.{Action, ActionPage, Supporter, PublicKey, Field, Contact}
   alias Proca.Server.Plumbing
   import Ecto.Changeset
+  import Ecto.Query, only: [from: 2]
 
   @moduledoc """
   Processing:
@@ -17,13 +18,13 @@ defmodule Proca.Server.Processing do
   3. ignore. This is a case where we store action for counts (share, tweet
   without any contact, and it might never arrive). On the other hand, it would be nice to have this later in CRM right? 
 
-       [ A(NEW) / nil ]
+      [ A(NEW) / nil ]
           | linked?
           v
-       [ A(NEW) / S(NEW) ]           <-----.
+      [ A(NEW) / S(NEW) ]           <-----.
           |                                |  On new action bound to rejected contact
           v                                |  Do we reset?
-       [ A(NEW) / S(CONFIRMING)] -> [ A(REJECTED) / S(REJECTED) ]   - - - > (remove the cookie?!)
+      [ A(NEW) / S(CONFIRMING)] -> [ A(REJECTED) / S(REJECTED) ]   - - - > (remove the cookie?!)
           |
           v
     ,->[ A(NEW) / S(ACCEPTED)]
@@ -72,28 +73,37 @@ defmodule Proca.Server.Processing do
   @doc """
   This function implements the state machine for Action. It returns a changeset to update action/supporter (state) and atoms telling where to route action.
   """
-  @spec transition(Action, ActionPage) :: {Ecto.Changeset, :action | :supporter, :confirm | :deliver} | :ok
-  def transition(%{
-        processing_status: :new,
-        supporter: nil
-                 }, _ap) do
+  @spec transition(Action, ActionPage) ::
+          {Ecto.Changeset, :action | :supporter, :confirm | :deliver} | :ok
+  def transition(
+        %{
+          processing_status: :new,
+          supporter: nil
+        },
+        _ap
+      ) do
     # Action without any supporter associated: not processing.
     :ok
   end
-  
-  def transition(%{
-        processing_status: :delivered,
-        supporter: %{processing_status: :accepted}
-        }, _ap) do
+
+  def transition(
+        %{
+          processing_status: :delivered,
+          supporter: %{processing_status: :accepted}
+        },
+        _ap
+      ) do
     # Action already delivered: not processing.
     :ok
   end
 
-  def transition(action = %{
-        processing_status: :new,
-        supporter: %{processing_status: :accepted}
-                 }, _ap) do
-
+  def transition(
+        action = %{
+          processing_status: :new,
+          supporter: %{processing_status: :accepted}
+        },
+        _ap
+      ) do
     # go strainght to delivered
     {
       change_status(action, :delivered, :accepted),
@@ -102,10 +112,13 @@ defmodule Proca.Server.Processing do
     }
   end
 
-  def transition(action = %{
-        processing_status: :new,
-        supporter: %{processing_status: :new}
-                 }, _ap) do
+  def transition(
+        action = %{
+          processing_status: :new,
+          supporter: %{processing_status: :new}
+        },
+        _ap
+      ) do
     # we should handle confirmation if required, but before it's implemented let's accept supporter
     # and instantly go to delivery
     {
@@ -144,12 +157,15 @@ defmodule Proca.Server.Processing do
   def system_action_data(action) do
     %{
       "actionId" => action.id,
+      "actionPageId" => action.action_page_id,
+      "orgId" => action.org_id
     }
   end
 
   @spec process(Action) :: :ok
   def process(action) do
-    action = Repo.preload(action, [action_page: :org, supporter: :contacts])
+    action = Repo.preload(action, action_page: :org, supporter: :contacts)
+
     case transition(action, action.action_page) do
       {state_change, thing, stage} ->
         Repo.transaction(fn ->
@@ -157,10 +173,87 @@ defmodule Proca.Server.Processing do
             :ok ->
               Repo.update!(state_change)
               :ok
-            :error -> raise "Cannot emit"
+
+            :error ->
+              raise "Cannot emit"
           end
         end)
-      :ok -> :ok
+
+      :ok ->
+        :ok
     end
+  end
+
+  def external_representation_source(action = %{source: s}) when not is_nil(s) do
+    %{
+      source: s.source,
+      mediunm: s.medium,
+      campaign: s.campaign,
+      content: s.content
+    }
+  end
+
+  def external_representation_source(_) do
+    nil
+  end
+
+  def external_representation_contact(
+        %Supporter{
+          fingerprint: ref,
+          first_name: first_name,
+          email: email
+        },
+        %Contact{
+          payload: payload,
+          crypto_nonce: nonce,
+          public_key: %PublicKey{public: public}
+        }
+      ) do
+    %{
+      ref: Supporter.base_encode(ref),
+      firstName: first_name,
+      email: email,
+      payload: Contact.base_encode(payload),
+      nonce: Contact.base_encode(nonce),
+      publicKey: PublicKey.base_encode(public)
+    }
+  end
+
+  def external_representation_contact(
+        %Supporter{
+          fingerprint: ref,
+          first_name: first_name,
+          email: email
+        },
+        %Contact{
+          payload: payload
+        }
+      ) do
+    %{
+      ref: Supporter.base_encode(ref),
+      firstName: first_name,
+      email: email,
+      payload: Contact.base_encode(payload)
+    }
+  end
+
+  def external_representation(action) do
+    contact = hd(action.supporter.contacts)
+
+    %{
+      action: %{
+        id: action.id,
+        actionType: action.action_type,
+        fields: Field.list_to_map(action.fields),
+        createdAt: action.inserted_at
+      },
+      actionPageId: action.action_page_id,
+      contact: external_representation_contact(action.supporter, contact),
+      privacy: %{
+        communication: action.supporter.consent.communication,
+        givenAt: action.supporter.consent.given_at
+      },
+      source: external_representation_source(action)
+    }
   end
 end
