@@ -46,7 +46,7 @@ defmodule Proca.Service do
 
   def aws_request(req, %Service{user: access_key_id,
                            password: secret_access_key,
-                           path: region}) do
+                           host: region}) do
     req
     |> ExAws.request([
       access_key_id: access_key_id,

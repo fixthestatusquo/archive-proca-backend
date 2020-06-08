@@ -2,6 +2,7 @@ defmodule Proca.Stage.ThankYou do
   use Broadway
 
   alias Broadway.Message
+  alias Broadway.BatchInfo
   alias Proca.{Action,Org}
 
   def start_link(_opts) do
@@ -45,7 +46,7 @@ defmodule Proca.Stage.ThankYou do
   end
 
   @impl true
-  def handle_batch(_action_page_id, messages, batch_info, _) do
+  def handle_batch(:ses, messages, %BatchInfo{batch_key: _action_page_id}, _) do
     messages
   end
 

@@ -2,8 +2,10 @@ defmodule Proca.Stage.SQS do
   use Broadway
 
   alias Broadway.Message
-  alias Proca.{Action,Org}
+  alias Broadway.BatchInfo
+  alias Proca.{Action,Org,Service}
   import Ecto.Query, only: [from: 2]
+  alias Proca.Stage.Support
 
 
   def start_link(_opts) do
@@ -27,7 +29,7 @@ defmodule Proca.Stage.SQS do
       batchers: [
         sqs: [
           batch_size: 10,
-          batch_timeout: 10_000,
+          batch_timeout: 1_000,
           concurrency: 1
         ]
       ]
@@ -49,7 +51,36 @@ defmodule Proca.Stage.SQS do
 
 
   @impl true
-  def handle_batch(org_id, msgs, batch_info, _) do
+  def handle_batch(_sqs, msgs, %BatchInfo{batch_key: org_id}, _) do
+    with service when not is_nil(service) <- Service.get_one_for_org("sqs", %Org{id: org_id}),
+         action_ids <- Enum.map(msgs, fn m -> m.data["actionId"] end),
+         actions <- Support.bulk_actions_data(action_ids) |> Enum.map(&to_message/1)
+      do
 
+      case ExAws.SQS.send_message_batch(service.path, actions)
+      |> Service.aws_request(service)
+      do
+      {:ok, status} -> msgs |> mark_failed(status)
+      _ -> msgs |> Enum.map(fn m -> Message.failed("Cannot call SQS.SendMessageBatch") end)
+      end
+    else
+      _ -> {:error, "SQS service not configured for org_id #{org_id}"}
+    end
+  end
+
+  def to_message(body) do
+    {:ok, payload} = JSON.encode(body)
+    [id: body["actionId"], message_body: payload]
+  end
+
+  def mark_failed(messages, %{body: %{failures: fails}}) do
+    reasons = Enum.reduce(fails, %{}, fn %{id: id, message: msg}, acc -> Map.put(acc, String.to_integer(id), msg) end)
+    messages
+    |> Enum.map(fn m ->
+      case Map.get(reasons, m.data["actionId"], nil) do
+        reason when is_bitstring(reason) -> Message.failed(m, reason)
+        _ -> m
+      end
+    end)
   end
 end

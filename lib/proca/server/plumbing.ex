@@ -26,7 +26,7 @@ defmodule Proca.Server.Plumbing do
      a. Supporter -> confirm if needed(double-opt-in)
      b. Action -> confirm if needed(moderation of types)
   2. Delivery stage - copied to many queues as needed (routing keys with wildcards)
-     a. Only for actions, but with supporter info.
+     a. Action only, but with supporter info.
 
   ## Routing:
   The routing keys have such structure in both confirm and deliver exchange:
@@ -63,10 +63,13 @@ defmodule Proca.Server.Plumbing do
               \____ ORG1,ORG2,ORG3.system.* -> system.sqs
   
 
+  Some queues will by read by external consumer, actually all the ORG* queues.
+  They need full data. OTOH, system queues will be able to deal with a simple
+  set of action_ids etc, with AP id and Org id to help batching these messages.
+
   XXX maybe system.email.confirm can be merged with system.email.thankyou ?
 
   ```
-
   """
   @impl true
   def init(url) do
@@ -127,6 +130,7 @@ defmodule Proca.Server.Plumbing do
   def handle_cast(:setup, %{conn: c} = s) do
     setup_exchanges(c)
     setup_global_queues(c)
+    setup_org_queues(c)
     {:noreply, s}
   end
 
@@ -144,8 +148,11 @@ defmodule Proca.Server.Plumbing do
   end
 
   @doc """
-  Create exchanges for two stages of processing: confirm queue where data is confirmed, and then delivery queue where data can be processed further.
+  Create exchanges for two stages of processing: confirm queue where
+  data is confirmed, and then delivery queue where data can be processed
+  further.
   """
+
   def setup_exchanges(connection) do
     {:ok, chan} = Channel.open(connection)
     try do
@@ -175,29 +182,34 @@ defmodule Proca.Server.Plumbing do
   - standard
   - specific: crm
   """
-  def setup_org_queues(connection, %Org{name: org_name}) do
+  def setup_org_queues(connection, %Org{name: org_name, system_sqs_deliver: enable_sqs}) do
     queues = [
       {"confirm", "#{org_name}.custom.supporter", "custom.#{org_name}.confirm"},
-      {"confirm", "#{org_name}.custom.action", "custom.#{org_name}.moderate"}
+      {"confirm", "#{org_name}.custom.action", "custom.#{org_name}.moderate"},
+      {"deliver", "#{org_name}.custom.action", "custom.#{org_name}.deliver"},
+      {"deliver", "#{org_name}.system.action", "system.sqs", enable_sqs}
     ]
     setup_queues(connection, queues)
   end
 
   ## XXX add drop_org_queues
-
+  ## XXX This is unused and maybe using setup_queues would be better instead
   def create_crm_queue(connection, org) do
     create_org_queue(connection, org, {"deliver", "*.*", "crm"})
   end
 
+  ## XXX This is unused and maybe using setup_queues would be better instead
   def drop_crm_queue(connection, org) do
     drop_org_queue(connection, org, {"deliver", "*.*", "crm"})
   end
 
+  ## XXX This is unused and maybe using setup_queues would be better instead
   def create_org_queue(connection, %Org{name: org_name}, {ex, rk, qn}) do
     setup_queues(connection, [{ex, "#{org_name}.#{rk}", "custom.#{org_name}.#{qn}"}])
   end
 
   # what happens on error? who retries? nmaybe this should be escalated to ui
+  ## XXX This is unused and maybe using setup_queues would be better instead
   def drop_org_queue(connection, %Org{name: org_name}, {_ex, _rk, qn}) do
     with_chan(connection, fn chan ->
       Queue.delete(chan, "custom.#{org_name}.#{qn}", if_unused: true, if_empty: true)
@@ -228,7 +240,13 @@ defmodule Proca.Server.Plumbing do
                                 {:ok, _stat} = Queue.declare(chan, qu, durable: true)
                                 :ok = Queue.bind(chan, qu, ex, routing_key: rk)
                               {qu} ->
-                                :ok = Queue.declare(chan, qu, durable: true)
+                                {:ok, _stat} = Queue.declare(chan, qu, durable: true)
+                              {ex, rk, qu, opt_bind} ->
+                                if opt_bind do
+                                  :ok = Queue.bind(chan, qu, ex, routing_key: rk)
+                                else
+                                  :ok = Queue.unbind(chan, qu, ex, routing_key: rk)
+                                end
                             end
       end)
     end)

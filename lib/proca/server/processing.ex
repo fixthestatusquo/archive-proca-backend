@@ -3,6 +3,7 @@ defmodule Proca.Server.Processing do
   alias Proca.Repo
   alias Proca.{Action, ActionPage, Supporter, PublicKey, Field, Contact}
   alias Proca.Server.Plumbing
+  import Proca.Stage.Support, only: [action_data: 1, brief_action_data: 1]
   import Ecto.Changeset
   import Ecto.Query, only: [from: 2]
 
@@ -128,6 +129,16 @@ defmodule Proca.Server.Processing do
     }
   end
 
+  def transition(
+    %{
+      processing_status: :delivered
+    },
+    _ap
+  ) do
+    # Action already delivered
+    :ok
+  end
+
   def change_status(action, action_status, supporter_status) do
     sup = change(action.supporter, processing_status: supporter_status)
     change(action, processing_status: action_status, supporter: sup)
@@ -135,13 +146,31 @@ defmodule Proca.Server.Processing do
 
   @doc """
   This method emits an effect on transition.
+
+  If custom processing is enabled, we send whole action data, because a
+  different system will consume it straight from rabbitmq.
+
   """
   @spec emit(Action, :action | :supporter, :confirm | :deliver) :: :ok | :error
   def emit(action, :action, :deliver) do
+
+    routing = if action.action_page.org.custom_action_deliver do
+      "#{action.action_page.org.name}.custom.action"
+    else
+      "#{action.action_page.org.name}.system.action"
+    end
+
+    data = if action.action_page.org.custom_action_deliver do
+      action_data(action)
+    else
+      brief_action_data(action)
+    end
+
+    IO.puts("Emitting action/deliver #{action.id} with #{routing}")
     Plumbing.push(
       exchange_for(:action, :deliver),
-      "#{action.action_page.org.name}.system.action",
-      system_action_data(action)
+      routing,
+      data
     )
   end
 
@@ -153,14 +182,6 @@ defmodule Proca.Server.Processing do
     "deliver"
   end
 
-  @doc "We just pass action id around because we can just retrieve the action and have a synced copy"
-  def system_action_data(action) do
-    %{
-      "actionId" => action.id,
-      "actionPageId" => action.action_page_id,
-      "orgId" => action.org_id
-    }
-  end
 
   @spec process(Action) :: :ok
   def process(action) do
@@ -184,76 +205,4 @@ defmodule Proca.Server.Processing do
     end
   end
 
-  def external_representation_source(action = %{source: s}) when not is_nil(s) do
-    %{
-      source: s.source,
-      mediunm: s.medium,
-      campaign: s.campaign,
-      content: s.content
-    }
-  end
-
-  def external_representation_source(_) do
-    nil
-  end
-
-  def external_representation_contact(
-        %Supporter{
-          fingerprint: ref,
-          first_name: first_name,
-          email: email
-        },
-        %Contact{
-          payload: payload,
-          crypto_nonce: nonce,
-          public_key: %PublicKey{public: public}
-        }
-      ) do
-    %{
-      ref: Supporter.base_encode(ref),
-      firstName: first_name,
-      email: email,
-      payload: Contact.base_encode(payload),
-      nonce: Contact.base_encode(nonce),
-      publicKey: PublicKey.base_encode(public)
-    }
-  end
-
-  def external_representation_contact(
-        %Supporter{
-          fingerprint: ref,
-          first_name: first_name,
-          email: email
-        },
-        %Contact{
-          payload: payload
-        }
-      ) do
-    %{
-      ref: Supporter.base_encode(ref),
-      firstName: first_name,
-      email: email,
-      payload: Contact.base_encode(payload)
-    }
-  end
-
-  def external_representation(action) do
-    contact = hd(action.supporter.contacts)
-
-    %{
-      action: %{
-        id: action.id,
-        actionType: action.action_type,
-        fields: Field.list_to_map(action.fields),
-        createdAt: action.inserted_at
-      },
-      actionPageId: action.action_page_id,
-      contact: external_representation_contact(action.supporter, contact),
-      privacy: %{
-        communication: action.supporter.consent.communication,
-        givenAt: action.supporter.consent.given_at
-      },
-      source: external_representation_source(action)
-    }
-  end
 end

@@ -47,6 +47,9 @@ config :ex_aws, :hackney_opts,
   follow_redirect: true,
   recv_timeout: 10_000
 
+config :ex_aws_sqs, parser: ExAws.SQS.SweetXmlParser
+
+
 config :sentry,
   environment_name: Mix.env(),
   included_environments: [:prod],
