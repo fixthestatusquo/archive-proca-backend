@@ -10,6 +10,10 @@ defmodule Proca.Contact do
     belongs_to :sign_key, Proca.PublicKey
     belongs_to :supporter, Proca.Supporter
 
+    field :communication_consent, :boolean, default: false
+    field :communication_scopes, {:array, :string}
+    field :delivery_consent, :boolean, default: false
+
     timestamps()
   end
 
