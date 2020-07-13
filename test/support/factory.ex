@@ -44,6 +44,38 @@ defmodule Proca.Factory do
     }
   end
 
+  def basic_data_pl_factory do
+    %{
+      first_name: sequence("first_name"),
+      last_name: sequence("last_name"),
+      email: sequence("email", &"member-#{&1}@example.org"),
+      phone: sequence("phone", ["+48123498213", "6051233412", "0048600919929"]),
+      address: %{
+        postcode: sequence("postcode", ["02-123", "03-999", "03-123", "33-123"]),
+        country: "pl"
+      }
+    }
+  end
+
+  def basic_data_pl_contact_factory(attrs) do
+    action_page = Map.get(attrs, :action_page) || Factory.build(:action_page)
+    data = Map.get(attrs, :data) || build(:basic_data_pl)
+
+    {new_contact, _fpr} = Proca.Contact.BasicData.from_input(data)
+    |> Proca.Contact.BasicData.to_contact(action_page)
+
+    contact = Ecto.Changeset.apply_changes(new_contact)
+    contact
+  end
+
+  def basic_data_pl_supporter_factory(attrs) do
+    action_page = Map.get(attrs, :action_page) || Factory.build(:action_page)
+    data = Map.get(attrs, :data) || build(:basic_data_pl)
+
+    {new_contact, _fpr} = Proca.Contact.BasicData.from_input(data)
+    supporter = Proca.Supporter.from_contact_data(new_contact, action_page)
+    supporter
+  end
 
   def contact_factory do
     {:ok, payload} = %{
@@ -53,6 +85,14 @@ defmodule Proca.Factory do
 
     %Proca.Contact{
       payload: payload
+    }
+  end
+
+  def supporter_factory do
+    %Proca.Supporter{
+      first_name: sequence("first_name"),
+      email: sequence("email"),
+      fingerprint: sequence("fingerprint")
     }
   end
 end

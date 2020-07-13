@@ -5,6 +5,7 @@ defmodule Proca.Contact.BasicData do
 
   @behaviour Data
 
+  @derive Jason.Encoder
   defstruct [
     name: nil,
     first_name: nil,
@@ -47,15 +48,14 @@ defmodule Proca.Contact.BasicData do
   end
 
   @impl Data
-  def to_contact(%{valid?: true, changes: data}, _action_page) do
+  def to_contact(data, _action_page) do
     # XXX here we should check action_page.split_names
-    data = data
-    |> Map.delete(:name)
+    data = Map.from_struct(data) |> Map.delete(:name)
 
     {Contact.build(data), fingerprint(data)}
   end
 
-  defp fingerprint(%{email: email}) do
+  defp fingerprint(%{email: email}) when byte_size(email) > 0 do
     seed = Application.get_env(:proca, Proca.Supporter)[:fpr_seed]
     hash = :crypto.hash(:sha256, seed <> email)
     hash

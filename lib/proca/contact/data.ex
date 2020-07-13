@@ -10,7 +10,7 @@ defmodule Proca.Contact.Data do
     @doc """
     Accepts (virtual) data changeset, and action page. Returns contact changeset and fingerprint
     """
-    @callback to_contact(Changeset.t, ActionPage.t) :: {Changeset.t, binary()}
+    @callback to_contact(struct(), ActionPage.t) :: {Changeset.t, binary()}
 
     # Helper functions
     @doc "Given params with name or split name, recompute others"

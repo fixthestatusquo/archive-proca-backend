@@ -1,13 +1,12 @@
 defmodule Proca.Supporter do
   use Ecto.Schema
   alias Proca.Repo
-  alias Proca.{Consent, Supporter, Contact, ActionPage}
+  alias Proca.{Supporter, Contact, ActionPage}
   import Ecto.Changeset
   import Ecto.Query
 
   schema "supporters" do
     has_many :contacts, Proca.Contact
-    has_one :consent, Proca.Consent
 
     belongs_to :campaign, Proca.Campaign
     belongs_to :action_page, Proca.ActionPage
@@ -31,27 +30,25 @@ defmodule Proca.Supporter do
     |> validate_required([])
   end
 
-  def from_contact_data(%{valid?: true, changes: attrs}, action_page) do
-    %Supporter{}
-    |> cast(attrs, [:first_name, :email])  ## <- this list must come from action page pipeline needs
-    |> put_assoc(:campaign, action_page.campaign)
-    |> put_assoc(:action_page, action_page)
+
+  defp multiply_contact_for_recipients(_new_contact, []) do
+    []
   end
 
-  def maybe_encrypt(contact, recipients) do
-    case Proca.Supporter.Privacy.is_encrypted(recipients) do
-      {true, keys} -> Contact.encrypt(contact, keys)
-      false -> [contact]
-    end
+  defp multiply_contact_for_recipients(new_contact, [{org, consent_map} | recipients]) do
+    ch = new_contact
+    |> Contact.add_encryption(org)
+    |> Contact.add_consent(consent_map)
+
+    [ch | multiply_contact_for_recipients(new_contact, recipients)]
   end
 
+  @spec distribute_personal_data(Ecto.Changeset.t, Ecto.Changeset.t, ActionPage, map()) :: Ecto.Changeset.t
   def distribute_personal_data(new_supporter, new_contact, action_page, privacy) do
-    with recipients <- Proca.Supporter.Privacy.recipients(action_page, privacy),
-         distributed_contacts <- maybe_encrypt(new_contact, recipients),
-         consent <- Consent.from_privacy(privacy) do
+    with data_recipients <- Proca.Supporter.Privacy.recipients(action_page, privacy),
+         contacts_for_recipients <- multiply_contact_for_recipients(new_contact, data_recipients) do
       new_supporter
-      |> put_assoc(:contacts, distributed_contacts)
-      |> put_assoc(:consent, consent)
+      |> put_assoc(:contacts, contacts_for_recipients)
     end
   end
 
@@ -65,7 +62,8 @@ defmodule Proca.Supporter do
 
   @doc """
   """
-  def create_supporter(action_page, %{contact: contact, privacy: privacy}) do
+  @spec create_supporter(ActionPage, %{contact: map(), privacy: map()}) :: Ecto.Changeset.t
+  def create_supporter(action_page = %ActionPage{}, %{contact: contact, privacy: privacy}) do
     contact_schema = ActionPage.contact_schema(action_page)
 
     with data = %{valid?: true} = data <- apply(contact_schema, :from_input, [contact]),

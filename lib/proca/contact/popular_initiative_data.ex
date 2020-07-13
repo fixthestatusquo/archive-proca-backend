@@ -8,6 +8,7 @@ defmodule Proca.Contact.PopularInitiativeData do
 
   @behaviour Data
 
+  @derive Jason.Encoder
   defstruct [
     first_name: nil,
     last_name: nil,
@@ -38,7 +39,8 @@ defmodule Proca.Contact.PopularInitiativeData do
   end
 
   @impl Data
-  def to_contact(%{valid?: true, changes: data}, _action_page) do
+  def to_contact(data, _action_page) do
+    data = Map.from_struct(data)
     data = if Map.has_key?(data, :birth_date) do
       %{data | birth_date: Date.to_string(data.birth_date)}
     else

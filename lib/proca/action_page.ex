@@ -1,11 +1,17 @@
 defmodule Proca.ActionPage do
+  @moduledoc """
+  Action Page belongs to a Campaign, and reprezents a page (widget) where members take action.
+
+  Action Page accepts data in many formats (See Contact.Data) and produces Contact and Supporter records.
+  """
+
   use Ecto.Schema
 
   import Ecto.Changeset
   import Ecto.Query
 
   alias Proca.Repo
-  alias Proca.{ActionPage,Campaign,Org}
+  alias Proca.{ActionPage, Campaign, Org, Contact, Supporter}
 
   schema "action_pages" do
     field :locale, :string
@@ -52,5 +58,24 @@ defmodule Proca.ActionPage do
       :basic -> Proca.Contact.BasicData
       :popular_initiative -> Proca.Contact.PopularInitiativeData
     end
+  end
+
+  def new_data(params, action_page) do
+    schema = contact_schema(action_page)
+    apply(schema, :from_input, [params])
+  end
+
+  @spec new_contact(struct(), ActionPage) :: {Ecto.Changeset.t(Contact), string()}
+  def new_contact(data, action_page) do
+    schema = contact_schema(action_page)
+    apply(schema, :to_contact, [data, action_page])
+  end
+
+  @spec new_supporter(struct(), ActionPage) :: Ecto.Changeset.t(Supporter)
+  def new_supporter(data, action_page) do
+    %Supporter{}
+    |> cast(Map.from_struct(data), [:first_name, :email])  ## <- this list must come from action page pipeline needs
+    |> put_assoc(:campaign, action_page.campaign)
+    |> put_assoc(:action_page, action_page)
   end
 end
