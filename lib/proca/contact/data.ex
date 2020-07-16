@@ -33,7 +33,7 @@ defmodule Proca.Contact.Data do
       attr
     end
 
-    @email_format ~r{^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$}
+    @email_format Regex.compile! "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$"
     def validate_email(chst, field) do
       chst
       |> Changeset.validate_format(field, @email_format)
