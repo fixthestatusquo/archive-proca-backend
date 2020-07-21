@@ -47,7 +47,6 @@ defmodule Proca.Source do
     # look it up
     case Repo.one from(s in Source, where:
           s.campaign == ^t.campaign and
-          s.campaign == ^t.campaign and
           s.source == ^t.source and
           s.content == ^t.content) do
       found_source = %Source{} -> {:ok, found_source}
