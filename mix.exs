@@ -11,7 +11,12 @@ defmodule Proca.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
-      docs: docs()
+      docs: docs(),
+      releases: [
+        prod: [
+          steps: [:assemble, :tar]
+        ]
+      ]
     ]
   end
 
