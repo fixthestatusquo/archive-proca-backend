@@ -13,7 +13,7 @@ defmodule Proca.MixProject do
       deps: deps(),
       docs: docs(),
       releases: [
-        prod: [
+        proca: [
           steps: [:assemble, :tar]
         ]
       ]
