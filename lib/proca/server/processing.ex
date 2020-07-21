@@ -168,8 +168,6 @@ defmodule Proca.Server.Processing do
 
     data = action_data(action)
 
-    IO.puts("Emitting action/deliver #{action.id} with #{routing}")
-    IO.inspect(data, label: "Action data")
     with :ok <- Plumbing.push(exchange_for(:action, :deliver), routing, data),
          :ok <- clear_transient(action) do
       :ok
