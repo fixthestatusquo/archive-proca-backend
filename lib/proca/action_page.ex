@@ -1,6 +1,6 @@
 defmodule Proca.ActionPage do
   @moduledoc """
-  Action Page belongs to a Campaign, and reprezents a page (widget) where members take action.
+  Action Page belongs to a Campaign, and represents a page (widget) where members take action.
 
   Action Page accepts data in many formats (See Contact.Data) and produces Contact and Supporter records.
   """
