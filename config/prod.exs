@@ -18,6 +18,12 @@ config :logger, level: :error
 
 # Running with Systemd
 config :mix_systemd,
+  exec_start_pre: [
+    # Run before starting the app
+    # The `!` means the script is run as root, not as the app user
+    [:deploy_dir, "/bin/proca eval Proca.ReleaseTasks.migrate"],
+    [:deploy_dir, "/bin/proca eval Proca.ReleaseTasks.seed"]
+  ],
   dirs: [
     # create /etc/foo
     :runtime,
