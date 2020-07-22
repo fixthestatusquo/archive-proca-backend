@@ -20,11 +20,16 @@ config :logger, level: :error
 config :mix_systemd,
   dirs: [
     # create /etc/foo
+    :runtime,
     :configuration,
   ],
   env_files: [
     # Read environment vars from the file /etc/foo/environment
-    ["-", :configuration_dir, "/environment"],
+    [:configuration_dir, "/environment"],
+  ],
+  env_vars: [
+    # Tell release to use /run/foo for temp files
+    ["RELEASE_TMP=", :runtime_dir],
   ]
 
 # ## SSL Support
