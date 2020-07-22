@@ -56,17 +56,6 @@ config :sentry,
   enable_source_code_context: true,
   root_source_code_path: File.cwd!()
 
-
-config :mix_systemd,
-  dirs: [
-    # create /etc/foo
-    :configuration,
-  ],
-  env_files: [
-    # Read environment vars from the file /etc/foo/environment
-    ["-", :configuration_dir, "/environment"],
-]
-
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"

@@ -16,6 +16,17 @@ config :proca, ProcaWeb.Endpoint,
 # Do not print debug messages in production
 config :logger, level: :error
 
+# Running with Systemd
+config :mix_systemd,
+  dirs: [
+    # create /etc/foo
+    :configuration,
+  ],
+  env_files: [
+    # Read environment vars from the file /etc/foo/environment
+    ["-", :configuration_dir, "/environment"],
+  ]
+
 # ## SSL Support
 #
 # To get SSL working, you will need to add the `https` key
