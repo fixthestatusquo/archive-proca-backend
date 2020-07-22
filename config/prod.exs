@@ -39,6 +39,10 @@ config :mix_systemd,
     ["RELEASE_TMP=", :runtime_dir],
   ]
 
+config :lager,
+  log_root: '/var/log/proca'
+
+
 # ## SSL Support
 #
 # To get SSL working, you will need to add the `https` key
