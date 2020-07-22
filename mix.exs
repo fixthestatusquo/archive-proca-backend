@@ -69,7 +69,7 @@ defmodule Proca.MixProject do
       {:pow, "~> 1.0.20"},
       {:proper_case, "~> 1.0.2"},
       {:ex_doc, "~> 0.21", only: :dev, runtime: false},
-      {:mix_systemd, "~> 0.7.3", runtime: false},
+      {:mix_systemd, "~> 0.7.3"},
       {:floki, ">= 0.0.0", only: :test},
       {:ex_machina, "~> 2.4", only: :test}
     ]
