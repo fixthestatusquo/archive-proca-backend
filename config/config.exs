@@ -30,7 +30,7 @@ config :proca, Proca.Server.Plumbing,
 
 # Configures Elixir's Logger
 config :logger,
-  backends: [:console, Sentry.LoggerBackend],
+  backends: [:console],
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
