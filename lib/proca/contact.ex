@@ -2,6 +2,7 @@ defmodule Proca.Contact do
   use Ecto.Schema
   import Ecto.Changeset
   alias Proca.Contact
+  alias Proca.Supporter.Consent
 
   schema "contacts" do
     belongs_to :supporter, Proca.Supporter
@@ -28,10 +29,24 @@ defmodule Proca.Contact do
     end
   end
 
-  def add_consent(contact_ch, attrs) do
+  def spread(_new_contact, []) do
+    []
+  end
+
+  def spread(new_contact, [consent | rc]) do
+    ch = new_contact
+    |> Contact.add_encryption(consent.org)
+    |> Contact.add_consent(consent)
+
+    [ch | spread(new_contact, rc)]
+  end
+
+  def add_consent(contact_ch, %Consent{
+        communication_consent: cc,
+        communication_scopes: cs,
+        delivery_consent: dc}) do
     contact_ch
-    |> cast(attrs, [:communication_consent, :communication_scopes, :delivery_consent])
-    |> validate_required([:communication_consent, :communication_scopes, :delivery_consent])
+    |> change(communication_consent: cc, communication_scopes: cs, delivery_consent: dc)
   end
 
   @spec add_encryption(Ecto.Changeset.t(), Proca.Org | Proca.PublicKey | nil) :: Ecto.Changeset.t()

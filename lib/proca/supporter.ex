@@ -2,6 +2,7 @@ defmodule Proca.Supporter do
   use Ecto.Schema
   alias Proca.Repo
   alias Proca.{Supporter, Contact, ActionPage}
+  alias Proca.Contact.Privacy
   import Ecto.Changeset
   import Ecto.Query
 
@@ -31,24 +32,12 @@ defmodule Proca.Supporter do
   end
 
 
-  defp multiply_contact_for_recipients(_new_contact, []) do
-    []
-  end
-
-  defp multiply_contact_for_recipients(new_contact, [{org, consent_map} | recipients]) do
-    ch = new_contact
-    |> Contact.add_encryption(org)
-    |> Contact.add_consent(consent_map)
-
-    [ch | multiply_contact_for_recipients(new_contact, recipients)]
-  end
-
-  @spec distribute_personal_data(Ecto.Changeset.t, Ecto.Changeset.t, ActionPage, map()) :: Ecto.Changeset.t
-  def distribute_personal_data(new_supporter, new_contact, action_page, privacy) do
-    with data_recipients <- Proca.Supporter.Privacy.recipients(action_page, privacy),
-         contacts_for_recipients <- multiply_contact_for_recipients(new_contact, data_recipients) do
+  @spec add_contacts(Ecto.Changeset.t, Ecto.Changeset.t, ActionPage, Privacy) :: Ecto.Changeset.t
+  def add_contacts(new_supporter, new_contact, action_page, privacy) do
+    with consents <- Proca.Supporter.Privacy.consents(action_page, privacy),
+         contacts <- Contact.spread(new_contact, consents) do
       new_supporter
-      |> put_assoc(:contacts, contacts_for_recipients)
+      |> put_assoc(:contacts, contacts)
     end
   end
 
@@ -58,25 +47,6 @@ defmodule Proca.Supporter do
 
   def privacy_defaults(%{opt_in: _opt_in} = p) do
     Map.put(p, :lead_opt_in, false)
-  end
-
-  @doc """
-  """
-  @spec create_supporter(ActionPage, %{contact: map(), privacy: map()}) :: Ecto.Changeset.t
-  def create_supporter(action_page = %ActionPage{}, %{contact: contact, privacy: privacy}) do
-    contact_schema = ActionPage.contact_schema(action_page)
-
-    with data = %{valid?: true} = data <- apply(contact_schema, :from_input, [contact]),
-         {new_contact = %{valid?: true}, fpr} <- apply(contact_schema, :to_contact, [data, action_page]),
-           new_supporter = %{valid?: true} <- from_contact_data(data, action_page)
-           |> distribute_personal_data(new_contact, action_page, privacy_defaults(privacy))
-           |> put_change(:fingerprint, fpr)
-    do
-      new_supporter
-    else
-      invalid_data ->
-        {:error, invalid_data}
-    end
   end
 
   @doc "Returns %Supporter{} or nil"

@@ -3,15 +3,12 @@ defmodule ContactTest do
   doctest Proca.Contact
   alias Proca.{Contact, PublicKey, Org, Repo, ActionPage, Supporter}
   alias Proca.Server.Encrypt
+  alias Proca.Contact.Data
   
   test "build contact and supporter from basic data" do
     action_page = Factory.build(:action_page)
 
-    # check converting attrs into data struct
-    attrs = Factory.build(:basic_data_pl)
-    new_data = ActionPage.new_data(attrs, action_page)
-    assert new_data.valid?
-    data = apply_changes new_data
+    data = Factory.build(:basic_data_pl)
     assert %Proca.Contact.BasicData{} = data
 
     # check creating contact from this
@@ -22,8 +19,8 @@ defmodule ContactTest do
 
     # Check payload
     decoded_data = Jason.decode! contact.payload
-    assert decoded_data["firstName"] == attrs.first_name
-    assert decoded_data["lastName"] == attrs.last_name
+    assert decoded_data["firstName"] == data.first_name
+    assert decoded_data["lastName"] == data.last_name
     assert is_nil contact.crypto_nonce
     assert not contact.communication_consent
     assert not contact.delivery_consent
@@ -35,8 +32,8 @@ defmodule ContactTest do
 
     supporter = apply_changes new_supporter
     assert %Supporter{} = supporter
-    assert supporter.first_name == attrs.first_name
-    assert supporter.email == attrs.email
+    assert supporter.first_name == data.first_name
+    assert supporter.email == data.email
     assert not is_nil supporter.campaign
     assert not is_nil supporter.action_page
   end
@@ -44,13 +41,13 @@ defmodule ContactTest do
   test "basic data without email fails" do
     action_page = Factory.build(:action_page)
 
-    attrs = %{Factory.build(:basic_data_pl) | email: ""}
+    attrs = %{name: "Foo Bar", email: ""}
     data = ActionPage.new_data(attrs, action_page)
     assert not data.valid?
     assert not is_nil List.keyfind(data.errors, :email, 0)
   end
 
-  test "basic data creates contact changeset" do
+  test "BasicData.from_input and to_contact produce contact changeset and fingerprint" do
     alias Proca.Contact.BasicData
     ap = Factory.insert(:action_page)
     chg = BasicData.from_input(%{
@@ -59,8 +56,9 @@ defmodule ContactTest do
                                })
     assert chg.valid?
     data = apply_changes(chg)
+    assert %BasicData{} = data
 
-    con_chg = Proca.Contact.BasicData.to_contact(data, ap)
+    con_chg = Data.to_contact(data, ap)
     {%{valid?: true, changes: cd}, fpr} = con_chg
 
     assert byte_size(fpr) > 0

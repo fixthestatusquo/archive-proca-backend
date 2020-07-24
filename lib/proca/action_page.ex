@@ -12,6 +12,7 @@ defmodule Proca.ActionPage do
 
   alias Proca.Repo
   alias Proca.{ActionPage, Campaign, Org, Contact, Supporter}
+  alias Proca.Contact.Data
 
   schema "action_pages" do
     field :locale, :string
@@ -67,8 +68,7 @@ defmodule Proca.ActionPage do
 
   @spec new_contact(struct(), ActionPage) :: {Ecto.Changeset.t(Contact), string()}
   def new_contact(data, action_page) do
-    schema = contact_schema(action_page)
-    apply(schema, :to_contact, [data, action_page])
+    Data.to_contact(data, action_page)
   end
 
   @spec new_supporter(struct(), ActionPage) :: Ecto.Changeset.t(Supporter)

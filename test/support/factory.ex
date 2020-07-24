@@ -1,5 +1,6 @@
 defmodule Proca.Factory do
   use ExMachina.Ecto, repo: Proca.Repo
+  alias Proca.Factory
 
   def org_factory do
     org_name = sequence("org")
@@ -17,7 +18,9 @@ defmodule Proca.Factory do
     %Proca.Campaign{
       name: name,
       title: title,
-      org: build(:org)
+      org: build(:org),
+      force_delivery: false
+      
     }
   end
  
@@ -25,7 +28,8 @@ defmodule Proca.Factory do
     %Proca.ActionPage{
       url: sequence("https://some.url.com/sign"),
       org: build(:org),
-      campaign: build(:campaign)
+      campaign: build(:campaign),
+      delivery: false
     }
   end
 
@@ -45,24 +49,22 @@ defmodule Proca.Factory do
   end
 
   def basic_data_pl_factory do
-    %{
+    %Proca.Contact.BasicData{
       first_name: sequence("first_name"),
       last_name: sequence("last_name"),
       email: sequence("email", &"member-#{&1}@example.org"),
       phone: sequence("phone", ["+48123498213", "6051233412", "0048600919929"]),
-      address: %{
-        postcode: sequence("postcode", ["02-123", "03-999", "03-123", "33-123"]),
-        country: "pl"
-      }
+      postcode: sequence("postcode", ["02-123", "03-999", "03-123", "33-123"]),
+      country: "pl"
     }
   end
 
   def basic_data_pl_contact_factory(attrs) do
     action_page = Map.get(attrs, :action_page) || Factory.build(:action_page)
+
     data = Map.get(attrs, :data) || build(:basic_data_pl)
 
-    {new_contact, _fpr} = Proca.Contact.BasicData.from_input(data)
-    |> Proca.Contact.BasicData.to_contact(action_page)
+    {new_contact, _fpr} = Proca.ActionPage.new_contact(data, action_page)
 
     contact = Ecto.Changeset.apply_changes(new_contact)
     contact
@@ -72,9 +74,8 @@ defmodule Proca.Factory do
     action_page = Map.get(attrs, :action_page) || Factory.build(:action_page)
     data = Map.get(attrs, :data) || build(:basic_data_pl)
 
-    {new_contact, _fpr} = Proca.Contact.BasicData.from_input(data)
-    supporter = Proca.Supporter.from_contact_data(new_contact, action_page)
-    supporter
+    Proca.ActionPage.new_supporter(data, action_page)
+    |> Ecto.Changeset.apply_changes
   end
 
   def contact_factory do
