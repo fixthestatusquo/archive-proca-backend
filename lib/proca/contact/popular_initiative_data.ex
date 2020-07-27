@@ -54,7 +54,14 @@ defimpl Proca.Contact.Data, for: Proca.Contact.PopularInitiativeData do
 
   def fingerprint(data = %Proca.Contact.PopularInitiativeData{first_name: fname, email: eml}) do
     seed = Application.get_env(:proca, Proca.Supporter)[:fpr_seed]
-    x = fname <> (data.last_name || "") <> eml <> (data.birth_date || "")
+
+    bdate = if data.birth_date do
+      Date.to_string(data.birth_date)
+    else
+      ""
+    end
+
+    x = fname <> (data.last_name || "") <> eml <> bdate
     hash = :crypto.hash(:sha256, seed <> x)
     hash
   end

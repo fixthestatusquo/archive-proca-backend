@@ -60,9 +60,7 @@ defmodule Proca.Supporter.Privacy do
   privacy - for now, a simple privacy map is: %{ opt_in: :boolean, lead_opt_in: :boolean }.
   Exactly what we have in the API.
   """
-  @spec consents(Proca.ActionPage, Privacy) :: [
-          {Proca.Org, map()}
-        ]
+  @spec consents(Proca.ActionPage, Privacy) :: [Consent]
   def consents(action_page, privacy = %Privacy{}) when not is_nil(action_page) do
     action_page = Proca.Repo.preload(action_page, [:org, campaign: :org])
     widget_delivery = action_page.delivery
