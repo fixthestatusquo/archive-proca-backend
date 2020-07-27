@@ -20,7 +20,6 @@ defmodule Proca.Factory do
       title: title,
       org: build(:org),
       force_delivery: false
-      
     }
   end
  
