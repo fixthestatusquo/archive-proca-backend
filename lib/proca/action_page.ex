@@ -37,6 +37,10 @@ defmodule Proca.ActionPage do
     |> validate_format(:url, ~r/^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+/) 
   end
 
+  def changeset(attrs) do
+    changeset(%ActionPage{}, attrs)
+  end
+
   def upsert(org, campaign, attrs) do
     (Repo.get_by(ActionPage, campaign_id: campaign.id, url: attrs.url) || %ActionPage{})
     |> cast(attrs, [:url, :locale, :extra_supporters, :delivery, :thank_you_template_ref])
@@ -44,10 +48,6 @@ defmodule Proca.ActionPage do
     |> validate_format(:url, ~r/^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+/) 
     |> put_change(:campaign_id, campaign.id)
     |> put_change(:org_id, org.id)
-  end
-
-  def changeset(attrs) do
-    changeset(%ActionPage{}, attrs)
   end
 
   def find(id) do
@@ -66,16 +66,4 @@ defmodule Proca.ActionPage do
     apply(schema, :from_input, [params])
   end
 
-  @spec new_contact(struct(), ActionPage) :: {Ecto.Changeset.t(Contact), string()}
-  def new_contact(data, action_page) do
-    Data.to_contact(data, action_page)
-  end
-
-  @spec new_supporter(struct(), ActionPage) :: Ecto.Changeset.t(Supporter)
-  def new_supporter(data, action_page) do
-    %Supporter{}
-    |> cast(Map.from_struct(data), [:first_name, :email])  ## <- this list must come from action page pipeline needs
-    |> put_assoc(:campaign, action_page.campaign)
-    |> put_assoc(:action_page, action_page)
-  end
 end

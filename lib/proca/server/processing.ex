@@ -73,8 +73,20 @@ defmodule Proca.Server.Processing do
     {:noreply, state}
   end
 
+  @impl true
+  def handle_call(:sync, state, _from) do
+    {:reply, state, :ok}
+  end
+
   def process_async(action) do
     GenServer.cast(__MODULE__, {:action, action})
+  end
+
+  @doc """
+  A noop sync method that lets you make sure all previous async messages were processed (used in testing)
+  """
+  def sync do
+    GenServer.call(__MODULE__, :sync)
   end
 
   @doc """

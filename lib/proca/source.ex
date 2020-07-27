@@ -8,7 +8,7 @@ defmodule Proca.Source do
   
   schema "sources" do
     field :campaign, :string
-    field :content, :string
+    field :content, :string, default: ""
     field :medium, :string
     field :source, :string
 

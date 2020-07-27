@@ -1,4 +1,10 @@
 defmodule Proca.Contact.BasicData do
+  @moduledoc """
+  Basic data represents the most typical data set we collect on membres: email
+  as main identifier, names, postcode and country for locality, and optional
+  phone number.
+  """
+
   alias Proca.Contact.{Data, BasicData, Input}
   alias Proca.Contact
   import Ecto.Changeset
@@ -56,7 +62,7 @@ defimpl Proca.Contact.Data, for: Proca.Contact.BasicData do
     # XXX here we should check action_page.split_names
     data2 = Map.from_struct(data) |> Map.delete(:name)
 
-    {Contact.build(data2), Data.fingerprint(data)}
+    Contact.build(data2)
   end
 
   def fingerprint(%BasicData{email: email}) when byte_size(email) > 0 do

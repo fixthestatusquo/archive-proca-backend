@@ -17,6 +17,7 @@ defmodule Proca.Contact do
     field :communication_consent, :boolean, default: false
     field :communication_scopes, {:array, :string}, default: []
     field :delivery_consent, :boolean, default: false
+    belongs_to :org, Proca.Org
 
     timestamps()
   end
@@ -44,9 +45,10 @@ defmodule Proca.Contact do
   def add_consent(contact_ch, %Consent{
         communication_consent: cc,
         communication_scopes: cs,
-        delivery_consent: dc}) do
+        delivery_consent: dc,
+        org: org}) do
     contact_ch
-    |> change(communication_consent: cc, communication_scopes: cs, delivery_consent: dc)
+    |> change(communication_consent: cc, communication_scopes: cs, delivery_consent: dc, org: org)
   end
 
   @spec add_encryption(Ecto.Changeset.t(), Proca.Org | Proca.PublicKey | nil) :: Ecto.Changeset.t()

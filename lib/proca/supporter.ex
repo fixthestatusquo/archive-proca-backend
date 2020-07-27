@@ -2,7 +2,8 @@ defmodule Proca.Supporter do
   use Ecto.Schema
   alias Proca.Repo
   alias Proca.{Supporter, Contact, ActionPage}
-  alias Proca.Contact.Privacy
+  alias Proca.Contact.Data
+  alias Proca.Supporter.Privacy
   import Ecto.Changeset
   import Ecto.Query
 
@@ -31,6 +32,14 @@ defmodule Proca.Supporter do
     |> validate_required([])
   end
 
+  @spec new_supporter(struct(), ActionPage) :: Ecto.Changeset.t(Supporter)
+  def new_supporter(data, action_page) do
+    %Supporter{}
+    |> cast(Map.from_struct(data), [:first_name, :email])  ## <- this list must come from action page pipeline needs
+    |> change(first_name: data.first_name, email: data.email, fingerprint: Data.fingerprint(data))
+    |> put_assoc(:campaign, action_page.campaign)
+    |> put_assoc(:action_page, action_page)
+  end
 
   @spec add_contacts(Ecto.Changeset.t, Ecto.Changeset.t, ActionPage, Privacy) :: Ecto.Changeset.t
   def add_contacts(new_supporter, new_contact, action_page, privacy) do

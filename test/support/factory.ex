@@ -64,7 +64,7 @@ defmodule Proca.Factory do
 
     data = Map.get(attrs, :data) || build(:basic_data_pl)
 
-    {new_contact, _fpr} = Proca.ActionPage.new_contact(data, action_page)
+    new_contact = Proca.Contact.Data.to_contact(data, action_page)
 
     contact = Ecto.Changeset.apply_changes(new_contact)
     contact
@@ -74,7 +74,7 @@ defmodule Proca.Factory do
     action_page = Map.get(attrs, :action_page) || Factory.build(:action_page)
     data = Map.get(attrs, :data) || build(:basic_data_pl)
 
-    Proca.ActionPage.new_supporter(data, action_page)
+    Proca.Supporter.new_supporter(data, action_page)
     |> Ecto.Changeset.apply_changes
   end
 

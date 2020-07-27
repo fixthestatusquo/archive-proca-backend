@@ -47,8 +47,8 @@ defmodule Api.ActionTest do
     make_petition_action(org, ap, %{
           action_type: "petition",
           fields: [
-            %{ key: "extra_supporters", value: "5"},
-            %{ key: "card_url", value: "https://bucket.s3.amazon.com/1234/file.pdf"}
+            %{key: "extra_supporters", value: "5"},
+            %{key: "card_url", value: "https://bucket.s3.amazon.com/1234/file.pdf"}
           ]})
 
     [action] = Repo.all(from(a in Action, order_by: [desc: :inserted_at], limit: 1, preload: [:fields, :supporter]))

@@ -2,7 +2,7 @@ defmodule Proca.Contact.PopularInitiativeData do
   @moduledoc """
   Data gathered for Popular Initiative in Switzerland.
   """
-  alias Proca.Contact.{Data, PopularInitiativeData}
+  alias Proca.Contact.{Data, Input, PopularInitiativeData}
   alias Proca.Contact
   import Ecto.Changeset
 
@@ -49,7 +49,7 @@ defimpl Proca.Contact.Data, for: Proca.Contact.PopularInitiativeData do
     else
       attrs
     end
-    {Contact.build(attrs), fingerprint(data)}
+    Contact.build(attrs)
   end
 
   def fingerprint(data = %Proca.Contact.PopularInitiativeData{first_name: fname, email: eml}) do

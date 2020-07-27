@@ -12,7 +12,7 @@ defmodule ContactTest do
     assert %Proca.Contact.BasicData{} = data
 
     # check creating contact from this
-    {contact_ch = %Ecto.Changeset{}, fpr} = ActionPage.new_contact(data, action_page)
+    contact_ch = %Ecto.Changeset{} = Data.to_contact(data, action_page)
     contact = apply_changes contact_ch
     assert %Contact{} = contact
     assert not is_nil contact.payload
@@ -27,7 +27,7 @@ defmodule ContactTest do
     assert contact.communication_scopes == []
 
     # check supporter
-    new_supporter = ActionPage.new_supporter(data, action_page)
+    new_supporter = Supporter.new_supporter(data, action_page)
     assert new_supporter.valid?
 
     supporter = apply_changes new_supporter
@@ -58,9 +58,9 @@ defmodule ContactTest do
     data = apply_changes(chg)
     assert %BasicData{} = data
 
-    con_chg = Data.to_contact(data, ap)
-    {%{valid?: true, changes: cd}, fpr} = con_chg
+    %{valid?: true, changes: cd} =  Data.to_contact(data, ap)
 
+    fpr = Data.fingerprint(data)
     assert byte_size(fpr) > 0
   end
 end
