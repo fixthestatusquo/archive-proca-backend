@@ -89,7 +89,6 @@ defmodule ProcaWeb.Resolvers.Action do
          supporter1 = %{valid?: true} <- Supporter.new_supporter(data, action_page),
          supporter2 <- Supporter.add_contacts(supporter1, contact, action_page, struct!(Privacy, priv))
          |> add_tracking(params),
-      _x <- IO.inspect(Repo.all(Proca.Source)),
          {:ok, supporter} <- Repo.insert(supporter2),
          action1 = %{valid?: true} <-
            Action.create_for_supporter(action, supporter, action_page)
