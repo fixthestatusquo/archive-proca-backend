@@ -47,6 +47,17 @@ defmodule ProcaWeb.Resolvers.Org do
     {:ok, c}
   end
 
+  def action_page(%{id: org_id}, params, _) do
+    case  ProcaWeb.Resolvers.ActionPage.find(nil, params, nil) do
+      {:ok, %ActionPage{org_id: ^org_id}} = ret -> ret
+      {:ok, %ActionPage{}} -> {:error, %{
+                                  message: "Action page not found",
+                                  extensions: %{code: "not_found"}
+                               }}
+      {:error, x} -> {:error, x}
+    end
+  end
+
 
   defp org_signatures(org) do
     from(s in Supporter,

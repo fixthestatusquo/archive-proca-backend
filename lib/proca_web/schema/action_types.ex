@@ -126,7 +126,7 @@ defmodule ProcaWeb.Schema.ActionTypes do
     field :fields, non_null(list_of(non_null(:custom_field)))
     field :tracking, :tracking
     field :campaign, non_null(:action_campaign)
-    field :action_page, non_null(:action_action_page)
+    field :action_page, non_null(:simple_action_page)
     field :privacy, non_null(:consent)
   end
 
@@ -135,7 +135,8 @@ defmodule ProcaWeb.Schema.ActionTypes do
     field :external_id, non_null(:integer)
   end
 
-  object :action_action_page do
+  object :simple_action_page do
+    field :id, non_null(:integer)
     field :name, non_null(:string)
     field :locale, non_null(:string)
   end
@@ -146,7 +147,7 @@ defmodule ProcaWeb.Schema.ActionTypes do
     field :nonce, :string
     field :public_key, :key
     field :sign_key, :key
-    field :optIn, non_null(:boolean)
+ #   field :optIn, non_null(:boolean) <- is in privacy already
   end
 
   @desc "Encryption or sign key with integer id (database)"
