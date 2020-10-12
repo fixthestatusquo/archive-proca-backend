@@ -110,6 +110,14 @@ defmodule ProcaWeb.Schema.ActionTypes do
     # field :longitute, :float
   end
 
+# field :areas -- commented above
+#   @desc "Type to describe an area (identified by area_code) in some administrative division (area_type). Area code can be an official code or just a name, provided they are unique."
+#   input_object :area_input do
+#     field :area_code, :string
+#     field :area_type, :string
+#   end
+
+
   @desc "Custom field added to action. For signature it can be contact, for mail it can be subject and body"
   input_object :action_input do
     @desc "Action Type"
