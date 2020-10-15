@@ -5,7 +5,7 @@ defmodule ProcaWeb.Schema.SubscriptionTypes do
   alias Proca.{ActionPage, Org}
 
   object :updates do
-    field :action_page_updated, :public_action_page do
+    field :action_page_upserted, :public_action_page do
       arg :org_name, :string
 
       config fn args, _ ->

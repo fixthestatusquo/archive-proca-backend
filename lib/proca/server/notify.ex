@@ -14,6 +14,10 @@ defmodule Proca.Server.Notify do
     Proca.Server.Keys.update_key(org, key)
   end
 
+  def action_page_added(action_page) do
+    action_page_updated(action_page)
+  end
+
   def action_page_updated(action_page) do
     action_page = Repo.preload(action_page, [:org, :campaign])
     publish_subscription_event(action_page, action_page_updated: "$instance")
