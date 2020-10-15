@@ -27,10 +27,26 @@ defmodule ProcaWeb.DashView do
 
   def supported_languages() do
     [
+      {"Arabic", "ar"},
+      {"Bulgarian", "br"},
+      {"Croatian", "hr"},
+      {"Czech", "cs"},
+      {"Danish", "da"},
+      {"Dutch", "nl"},
       {"English", "en"},
+      {"English (GB)", "en_GB"},
+      {"Estonian", "et"},
+      {"Finnish", "fi"},
       {"French", "fr"},
       {"German", "de"},
-      {"Italian", "it"}
+      {"Greek", "el"},
+      {"Hebrew", "he"},
+      {"Hindi", "hi"},
+      {"Italian", "it"},
+      {"Polish", "pl"},
+      {"Romanian", "ro"},
+      {"Serbian", "sr"},
+      {"Spanish", "se"}
     ]
   end
 
