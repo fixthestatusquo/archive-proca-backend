@@ -5,7 +5,7 @@ defmodule ProcaWeb.CampaignsController do
   alias Proca.Repo
   import Ecto.Query
   import Ecto.Changeset
-
+  alias Proca.Server.Notify
 
   def handle_event("campaign_new", _value, socket) do
     {
@@ -53,7 +53,10 @@ defmodule ProcaWeb.CampaignsController do
 
 
     case Repo.insert_or_update(new_ch) do
-      {:ok, _ap} ->
+      {:ok, ap} ->
+
+        Notify.action_page_updated(ap)
+
         {
           :noreply,
          socket
