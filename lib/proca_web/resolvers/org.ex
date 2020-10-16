@@ -27,7 +27,10 @@ defmodule ProcaWeb.Resolvers.Org do
     |> where([c], c.id == ^camp_id)
     |> Repo.one
 
-    {:ok, c}
+    case c do
+      nil -> {:error, "not_found"}
+      c -> {:ok, c}
+    end
   end
 
   def campaigns(org, _, _) do

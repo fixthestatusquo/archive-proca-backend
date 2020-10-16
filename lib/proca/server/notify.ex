@@ -20,8 +20,8 @@ defmodule Proca.Server.Notify do
 
   def action_page_updated(action_page) do
     action_page = Repo.preload(action_page, [:org, :campaign])
-    publish_subscription_event(action_page, action_page_updated: "$instance")
-    publish_subscription_event(action_page, action_page_updated: action_page.org.name)
+    publish_subscription_event(action_page, action_page_upserted: "$instance")
+    publish_subscription_event(action_page, action_page_upserted: action_page.org.name)
     :ok
   end
 
