@@ -13,7 +13,9 @@ defmodule ProcaWeb.Schema.ActionTypes do
 
       @desc "Organization name"
       arg :org_name, non_null(:string)
-      @desc "Campaign the action belongs to (unless given, get all actions)"
+      @desc "Limit results to campaign name"
+      arg :campaign_name, :string
+      @desc "Limit results to campaign id"
       arg :campaign_id, :integer
       @desc "return only actions with id starting from this argument (inclusive)"
       arg :start, :integer
