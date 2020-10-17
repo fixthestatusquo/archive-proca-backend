@@ -133,6 +133,7 @@ defmodule ProcaWeb.Schema.ActionTypes do
   # XXX maybe rename to :exported_action or something
   object :action do
     field :action_id, non_null(:integer)
+    field :created_at, non_null(:datetime)
     field :action_type, non_null(:string)
     field :contact, non_null(:contact)
     field :fields, non_null(list_of(non_null(:custom_field)))
