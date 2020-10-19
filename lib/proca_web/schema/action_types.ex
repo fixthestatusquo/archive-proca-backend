@@ -147,7 +147,7 @@ defmodule ProcaWeb.Schema.ActionTypes do
 
   object :action_campaign do
     field :name, non_null(:string)
-    field :external_id, non_null(:integer)
+    field :external_id, :integer
   end
 
   object :simple_action_page do
