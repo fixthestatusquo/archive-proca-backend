@@ -48,7 +48,7 @@ defmodule ProcaWeb.CampaignsController do
 
     new_ch = ch.data
     |> ActionPage.changeset(attrs)
-    |> cast(attrs, [:org_id])
+    |> put_change(:org_id, org_id)
     |> put_assoc(:campaign, socket.assigns[:selected_campaign])
 
 
