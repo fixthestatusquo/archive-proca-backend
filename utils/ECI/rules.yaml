@@ -164,6 +164,6 @@ common:
     empty: false
     skippable: false
   date.of.birth:
-    verify: age
+    age: true
     empty: false
     skippable: false
