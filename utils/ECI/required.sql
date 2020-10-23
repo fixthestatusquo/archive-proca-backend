@@ -10,15 +10,15 @@ SELECT
 
 -- GENERATE REQUIRED
 SELECT 
-  concat('"', code, '" => [', replace(fields, '.', '_'), '],') as aa
+  concat('"', code, '" => [', fields, '],') as aa
   FROM (
     SELECT
-      replace(code, '.','_') as code, 
+      code,
       GROUP_CONCAT( field SEPARATOR ', ') as fields
 
       FROM (
         SELECT
-          ctr.code, concat(':', replace(prop.`name`, 'oct.property.', '')) as field
+          ctr.code, concat('"', replace(prop.`name`, 'oct.property.', ''), '"') as field
           FROM OCT_COUNTRY ctr 
                  JOIN OCT_COUNTRY_PROPERTY cp ON ctr.id = cp.country_id
                  JOIN OCT_PROPERTY prop ON prop.id = cp.property_id
