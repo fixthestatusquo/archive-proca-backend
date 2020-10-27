@@ -12,6 +12,7 @@ defmodule Proca.Contact.EciData do
   defmodule Nationality do
     use Ecto.Schema
     @moduledoc "schema for national id"
+    @derive Jason.Encoder
     embedded_schema do
       field :country, :string
       field :document_type, :string
@@ -19,6 +20,7 @@ defmodule Proca.Contact.EciData do
     end
   end
 
+  @derive Jason.Encoder
   embedded_schema do
     field :first_name, :string
     field :last_name, :string
@@ -99,3 +101,31 @@ defmodule Proca.Contact.EciData do
 end
 
 defimpl Proca.Contact.Data, for: Proca.Contact.EciData do
+  alias Proca.Contact.EciData
+  alias Proca.Contact
+
+  def to_contact(%EciData{} = data, action_page) do
+    Contact.build(data)
+  end
+
+  def fingerprint(%EciData{
+        nationality: %{country: c, document_number: dn, document_type: dt}
+                  }) when not is_nil(dn) and not is_nil(dt) and not is_nil(c) do
+    seed = Application.get_env(:proca, Proca.Supporter)[:fpr_seed]
+    hash = :crypto.hash(:sha256, seed <> c <> dt <> dn)
+    hash
+  end
+
+  def fingerprint(%EciData{} = data) do
+    seed = Application.get_env(:proca, Proca.Supporter)[:fpr_seed]
+
+    [:country, :first_name, :last_name, :birth_date, :postcode]
+    [] |> Enum.reduce("", fn f, s ->
+      if f == :birth_date and data.birth_date do
+        s <> Date.to_string(data.birth_date)
+      else
+        s <> Map.get(s, f, "")
+      end
+    end)
+  end
+end
