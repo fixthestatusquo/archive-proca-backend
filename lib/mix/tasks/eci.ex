@@ -35,10 +35,6 @@ defmodule Mix.Tasks.Eci do
                                                          |> Repo.insert()
         ap
       end)
-
-
-
     end
-
   end
 end

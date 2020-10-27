@@ -1,5 +1,6 @@
 defmodule ProcaWeb.Schema.EciSchema do
   use Absinthe.Schema
+  alias ProcaWeb.Resolvers
 
   import_types(ProcaWeb.Schema.DataTypes)
   import_types(ProcaWeb.Schema.CampaignTypes)
