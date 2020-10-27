@@ -10,6 +10,7 @@ defmodule Proca.Contact.BasicData do
   alias Proca.Contact
   import Ecto.Changeset
 
+  @derive Jason.Encoder
   embedded_schema do
     field :name, :string
     field :first_name, :string
