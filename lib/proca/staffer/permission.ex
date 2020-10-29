@@ -11,7 +11,7 @@ defmodule Proca.Staffer.Permission do
     manage_orgs: 1 <<< 0,
     join_orgs: 1 <<< 1,
 
-    use_api: 1 <<< 8,
+    use_api: 1 <<< 8,  # XXX deprecated - we go full API so this will be unused
     export_contacts: 1 <<< 9,
 
     change_org_settings: 1 <<< 16,
@@ -51,5 +51,10 @@ defmodule Proca.Staffer.Permission do
 
   def remove(perms, permission) when is_integer(perms) and is_list(permission) do
     Enum.reduce(permission, perms, &(remove(&2, &1)))
+  end
+
+  def to_list(perms) when is_integer(perms) do
+    Enum.filter(@bits, fn {_p, b} -> (b &&& perms) > 0 end)
+    |> Enum.map(fn {p, _b} -> p end)
   end
 end
