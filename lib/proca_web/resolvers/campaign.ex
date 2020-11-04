@@ -68,7 +68,7 @@ defmodule ProcaWeb.Resolvers.Campaign do
         pages
         |> Enum.map(&fix_page_legacy_url/1)
         |> Enum.each(fn page ->
-          {:ok, ap} = upsert_action_page(org, campaign, page)
+          ap = upsert_action_page(org, campaign, page)
           Notify.action_page_updated(ap)
           ap
         end)
@@ -120,9 +120,9 @@ defmodule ProcaWeb.Resolvers.Campaign do
     end
 
     if ap.data.id do
-      Repo.update(ap)
+      Repo.update!(ap)
     else
-      Repo.insert(ap)
+      Repo.insert!(ap)
     end
   end
 end
