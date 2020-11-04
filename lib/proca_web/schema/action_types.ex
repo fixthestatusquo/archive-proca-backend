@@ -9,7 +9,9 @@ defmodule ProcaWeb.Schema.ActionTypes do
 
   object :action_queries do
     field :export_actions, list_of(:action) do
-      middleware Authorized
+      middleware Authorized,
+        can?: {:org, [:export_contacts]},
+        get_by: [name: :org_name]
 
       @desc "Organization name"
       arg :org_name, non_null(:string)
