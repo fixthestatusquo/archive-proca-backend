@@ -31,7 +31,6 @@ defmodule ProcaWeb.Schema.SubscriptionTypes do
         {
           :ok,
           action_page
-          |> ActionPage.stringify_config()
         }
       end
     end

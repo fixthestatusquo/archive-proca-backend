@@ -23,7 +23,7 @@ defmodule ProcaWeb.Resolvers.ActionPage do
       nil -> {:error, %{
                  message: "Action page not found",
                  extensions: %{code: "not_found"} } }
-      ap -> {:ok, ap |> Proca.ActionPage.stringify_config()}
+      ap -> {:ok, ap}
     end
   end
 
@@ -51,20 +51,15 @@ defmodule ProcaWeb.Resolvers.ActionPage do
     }
   end
 
-  def update(_, attrs = %{id: id}, %{context: %{user: user}}) do
-    case Repo.get_by(ActionPage, id: id)
-    |> Helper.can_manage?(user, fn ap ->
-      ap
-      |> ActionPage.changeset(attrs)
-      |> Repo.update
-    end)
+  def update(_, attrs, %{context: %{action_page: ap}}) do
+    case ap
+    |> ActionPage.changeset(attrs)
+    |> Repo.update()
       do
       {:error,  chset = %Ecto.Changeset{}} -> {:error, Helper.format_errors(chset)}
-      {:error, msg} -> {:error, msg}
       {:ok, ap} ->
         Notify.action_page_updated(ap)
         {:ok, ap}
     end
   end
-
 end

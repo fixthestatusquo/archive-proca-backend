@@ -14,6 +14,7 @@ defmodule Proca.Staffer.Permission do
     use_api: 1 <<< 8,  # XXX deprecated - we go full API so this will be unused
     export_contacts: 1 <<< 9,
 
+    change_org_users: 1 <<< 15,
     change_org_settings: 1 <<< 16,
     manage_campaigns: 1 <<< 17,
     manage_action_pages: 1 <<< 18,

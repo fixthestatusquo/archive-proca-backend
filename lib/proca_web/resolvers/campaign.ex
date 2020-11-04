@@ -120,7 +120,7 @@ defmodule ProcaWeb.Resolvers.Campaign do
     end
 
     if ap.data.id do
-      Repo.update!(ap)
+      Repo.update(ap)
     else
       Repo.insert(ap)
     end

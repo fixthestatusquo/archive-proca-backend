@@ -95,7 +95,7 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     Update an Action Page
     """
     field :update_action_page, type: :action_page do
-      middleware Authorized
+      middleware Authorized, can?: {:action_page, :manage_action_pages}, get_by: [:id]
 
       # XXX Copy from action_page_input and find/replace field->arg. GraphQL is silly here
       @desc """
@@ -133,7 +133,7 @@ defmodule ProcaWeb.Schema.CampaignTypes do
       @desc """
       JSON string containing Action Page config
       """
-      arg :config, :string
+      arg :config, :json
 
       resolve(&Resolvers.ActionPage.update/3)
     end
@@ -177,7 +177,7 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     @desc "List of steps in journey"
     field :journey, list_of(non_null(:string))
     @desc "Config JSON of this action page"
-    field :config, :string
+    field :config, :json
     @desc "Extra supporters (added to supporters count)"
     field :extra_supporters, :integer
     @desc "Campaign this widget belongs to"
@@ -198,7 +198,7 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     @desc "List of steps in journey"
     field :journey, list_of(non_null(:string))
     @desc "Config JSON of this action page"
-    field :config, :string
+    field :config, :json
     @desc "Campaign this widget belongs to"
     field :campaign, :campaign do
       resolve &Resolvers.ActionPage.campaign/3
@@ -243,7 +243,7 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     @desc """
     JSON string containing Action Page config
     """
-    field :config, :string
+    field :config, :json
   end
 
 

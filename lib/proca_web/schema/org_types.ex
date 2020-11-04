@@ -20,6 +20,25 @@ defmodule ProcaWeb.Schema.OrgTypes do
   end
 
   object :org_mutations do
+    field :add_org, type: :org do
+      middleware Authorized
+      @desc "Name of organisation"
+      arg :name, non_null(:string)
+
+      @desc "Organisation title (human readable name)"
+      arg :title, :string
+
+      resolve(&Resolvers.Org.add_org/3)
+    end
+
+    field :delete_org, type: :boolean do
+      middleware Authorized, can?: {:org, :change_org_settings}, get_by: [:name]
+      @desc "Name of organisation"
+      arg :name, non_null(:string)
+
+      resolve(&Resolvers.Org.delete_org/3)
+    end
+
     field :update_org, type: :org do
       middleware Authorized
 
@@ -39,6 +58,63 @@ defmodule ProcaWeb.Schema.OrgTypes do
       arg :email_opt_in_template, :string
 
       resolve(&Resolvers.Org.update_org/3)
+    end
+
+    field :join_org, type: :boolean do
+      middleware Authorized
+      arg :name, non_null(:string)
+    end
+
+    field :leave_org, type: :boolean do
+      middleware Authorized
+      arg :name, non_null(:string)
+    end
+
+    field :generate_key, type: :key_with_private do
+      middleware Authorized, can?: {:org, :change_org_settings}, get_by: [name: :org_name]
+
+      @desc "Name of organisation, used for lookup, can't be used to change org name"
+      arg :org_name, non_null(:string)
+
+      arg :name, non_null(:string)
+
+      resolve(&Resolvers.Org.generate_key/3)
+    end
+
+    field :add_key, type: :key do
+      middleware Authorized, can?: {:org, :change_org_settings}, get_by: [name: :org_name]
+
+      @desc "Name of organisation, used for lookup, can't be used to change org name"
+      arg :org_name, non_null(:string)
+
+      arg :name, non_null(:string)
+      arg :public, non_null(:string)
+
+      resolve(&Resolvers.Org.add_key/3)
+    end
+
+    field :activate_key, type: :boolean do
+      arg :org_name, non_null(:string)
+      arg :id, non_null(:integer)
+    end
+
+    field :add_user, type: :boolean do
+      middleware Authorized, can?: {:org, :change_org_users}, get_by: [name: :org_name]
+      arg :org_name, non_null(:string)
+      arg :email, non_null(:string)
+      arg :role, :string
+    end
+
+    field :update_user, type: :boolean do
+      middleware Authorized, can?: {:org, :change_org_users}, get_by: [name: :org_name]
+      arg :org_name, non_null(:string)
+      arg :email, non_null(:string)
+      arg :role, :string
+    end
+
+    field :delete_user, type: :boolean do
+      arg :org_name, non_null(:string)
+      arg :email, non_null(:string)
     end
   end
 
@@ -104,24 +180,6 @@ defmodule ProcaWeb.Schema.OrgTypes do
       arg :id, :integer
       resolve &Resolvers.Org.campaign_by_id/3
     end
-
-    @desc """
-    Get signatures this org has collected.
-    Provide campaign_id to only get signatures for a campaign
-    XXX DEPRECATE AND REMOVE
-    """
-    field :signatures, :signature_list do
-      @desc "return only signatures for campaign id"
-      arg :campaign_id, :integer
-      @desc "return only signatures with id starting from this argument (inclusive)"
-      arg :start, :integer
-      @desc "return only signatures created at date time from this argument (inclusive)"
-      arg :after, :datetime
-      @desc "Limit the number of returned signatures"
-      arg :limit, :integer
-
-      resolve &Resolvers.Org.signatures/3
-    end
   end
 
   object :public_org do
@@ -153,6 +211,16 @@ defmodule ProcaWeb.Schema.OrgTypes do
     field :id, non_null(:integer)
     field :public, non_null(:string)
     field :name, :string
+    field :active, :boolean
+    field :expired_at, :datetime
+  end
+
+  object :key_with_private do
+    field :id, non_null(:integer)
+    field :public, non_null(:string)
+    field :private, non_null(:string)
+    field :name, :string
+    field :active, :boolean
     field :expired_at, :datetime
   end
 

@@ -45,7 +45,6 @@ defmodule ProcaWeb.Resolvers.Org do
     c = Ecto.assoc(org, :action_pages)
     |> preload([ap], [:org])
     |> Repo.all
-    |> Enum.map(&ActionPage.stringify_config(&1))
 
     {:ok, c}
   end
@@ -159,6 +158,14 @@ defmodule ProcaWeb.Resolvers.Org do
         email_opt_in_template: org.email_opt_in_template
       }
     }
+  end
+
+  def add_org(_, _, _) do
+    # XXX
+  end
+
+  def delete_org(_, _, _) do
+    # XXX
   end
 
   def update_org(_p, %{name: name} = attrs, %{context: %{user: user}}) do

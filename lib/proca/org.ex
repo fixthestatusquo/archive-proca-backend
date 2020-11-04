@@ -23,14 +23,19 @@ defmodule Proca.Org do
     belongs_to :email_backend, Proca.Service
     field :email_from, :string
     belongs_to :template_backend, Proca.Service
-    
+
+    # double opt in configuration
+    # XXX maybe move these two into config
     field :email_opt_in, :boolean, default: false
     field :email_opt_in_template, :string
 
+    # confirming and delivery configuration
     field :custom_supporter_confirm, :boolean
     field :custom_action_confirm, :boolean
     field :custom_action_deliver, :boolean
     field :system_sqs_deliver, :boolean
+
+    field :config, :map
 
     timestamps()
   end

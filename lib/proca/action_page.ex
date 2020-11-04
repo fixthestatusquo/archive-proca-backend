@@ -33,12 +33,13 @@ defmodule Proca.ActionPage do
   @doc false
   def changeset(action_page, attrs) do
     action_page
-    |> cast(attrs, [:name, :locale, :extra_supporters, :delivery, :thank_you_template_ref, :journey])
+    |> cast(attrs, [:name, :locale, :extra_supporters, :delivery, :thank_you_template_ref, :journey, :config])
     |> validate_required([:name, :locale])
     |> unique_constraint(:name)
     |> validate_format(:name, ~r/^(?:http(s)?:\/\/)?([[:alnum:]-_]+|[[:alnum:]-]+(?:\.[[:alnum:]\.-]+)+)(?:\/[[:alnum:]_-]+)+$/)
     |> remove_schema_from_name()
-    |> cast_json(:config, Map.get(attrs, :config, nil))
+    |> IO.inspect(label: "ap.changeset")
+    # |> cast_json(:config, Map.get(attrs, :config, nil))
   end
 
   def changeset(attrs) do
