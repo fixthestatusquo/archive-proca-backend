@@ -18,7 +18,7 @@ defmodule Proca.Staffer.Permission do
     change_org_settings: 1 <<< 16,
     manage_campaigns: 1 <<< 17,
     manage_action_pages: 1 <<< 18,
-    signoff_action_page: 1 <<< 19
+    signoff_action_page: 1 <<< 19  # XXX this is unused
   ]
 
   def can?(%Staffer{perms: perms}, permission) when is_atom(permission) do

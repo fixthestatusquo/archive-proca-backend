@@ -38,7 +38,6 @@ defmodule Proca.ActionPage do
     |> unique_constraint(:name)
     |> validate_format(:name, ~r/^(?:http(s)?:\/\/)?([[:alnum:]-_]+|[[:alnum:]-]+(?:\.[[:alnum:]\.-]+)+)(?:\/[[:alnum:]_-]+)+$/)
     |> remove_schema_from_name()
-    |> IO.inspect(label: "ap.changeset")
     # |> cast_json(:config, Map.get(attrs, :config, nil))
   end
 
@@ -111,8 +110,12 @@ defmodule Proca.ActionPage do
       |> put_change(:org_id, org.id)
   end
 
-  def find(id) do
+  def find(id) when is_integer(id) do
     Repo.one from a in ActionPage, where: a.id == ^id, preload: [:campaign, :org]
+  end
+
+  def find(name) when is_bitstring(name) do
+    Repo.one from a in ActionPage, where: a.name == ^name, preload: [:campaign, :org]
   end
 
   def contact_schema(%ActionPage{campaign: %Campaign{org: %Org{contact_schema: cs}}}) do

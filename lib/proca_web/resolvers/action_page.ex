@@ -4,6 +4,7 @@ defmodule ProcaWeb.Resolvers.ActionPage do
   alias Proca.Repo
   alias ProcaWeb.Helper
   alias Proca.Server.Notify
+  import Ecto.Changeset
 
   import Logger
 
@@ -61,5 +62,26 @@ defmodule ProcaWeb.Resolvers.ActionPage do
         Notify.action_page_updated(ap)
         {:ok, ap}
     end
+  end
+
+  def copy_from(_, %{name: name, from_name: from_name}, %{context: %{org: org}}) do
+    with ap when not is_nil(ap) <- ActionPage.find(from_name),
+         {:ok, new_ap} <- create_copy_in(org, ap, %{name: name})
+    do
+    Proca.Server.Notify.action_page_added(new_ap)
+    {:ok, new_ap}
+    else
+      nil -> {:error, "ActionPage named #{from_name} not found"}
+      {:error, %Ecto.Changeset{valid?: false} = ch} -> {:error, Helper.format_errors(ch)}
+    end
+  end
+
+  def create_copy_in(org, ap, attrs) do
+    %ActionPage{}
+    |> change(Map.take(ap, [:config, :delivery, :journey, :locale]))
+    |> ActionPage.changeset(attrs)
+    |> put_assoc(:org, org)
+    |> put_assoc(:campaign, ap.campaign)
+    |> Repo.insert()
   end
 end

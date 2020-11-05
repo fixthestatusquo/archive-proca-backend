@@ -28,6 +28,9 @@ defmodule ProcaWeb.Schema.OrgTypes do
       @desc "Organisation title (human readable name)"
       arg :title, :string
 
+      # @desc "Whitelisted domain names"
+      # arg :domains, list_of(non_null(:string))
+
       resolve(&Resolvers.Org.add_org/3)
     end
 

@@ -43,7 +43,9 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     Action Pages will be removed (principle of not removing signature data).
     """
     field :upsert_campaign, type: :campaign do
-      middleware Authorized
+      middleware Authorized,
+        can?: {:org, [:manage_campaigns, :manage_action_pages]},
+        get_by: [name: :org_name]
 
       @desc "Org name"
       arg(:org_name, non_null(:string))
@@ -71,7 +73,9 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     Deprecated, use upsert_campaign.
     """
     field :declare_campaign, type: :campaign do
-      middleware Authorized
+      middleware Authorized,
+        can?: {:org, [:manage_campaigns, :manage_action_pages]},
+        get_by: [name: :org_name]
 
       @desc "Org name"
       arg(:org_name, non_null(:string))
@@ -95,7 +99,9 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     Update an Action Page
     """
     field :update_action_page, type: :action_page do
-      middleware Authorized, can?: {:action_page, :manage_action_pages}, get_by: [:id]
+      middleware Authorized,
+        can?: {:action_page, [:manage_action_pages]},
+        get_by: [:id]
 
       # XXX Copy from action_page_input and find/replace field->arg. GraphQL is silly here
       @desc """
@@ -106,11 +112,12 @@ defmodule ProcaWeb.Schema.CampaignTypes do
       @desc """
       Unique NAME identifying ActionPage.
 
-      Does not have to exist, must be unique. Can be a 'technical' identifier
-      scoped to particular organization, so it does not have to change when the
-      slugs/urls change (eg. https://some.org/1234). However, frontent Widget can
-      ask for ActionPage by it's current location.href, in which case it is useful
-      to make this url match the real idwget location.
+      Must be unique. Can be a 'technical' identifier scoped to particular
+      organization, so it does not have to change when the slugs/urls change
+      (eg. https://some.org/1234). However, it can also be url-like, (eg.
+      my.org/climate/petition-123), so the can ask for ActionPage by it's
+      current location.href, in which case it is useful to make this url match
+      the real idwget location.
       """
       arg :name, :string
 
@@ -136,6 +143,27 @@ defmodule ProcaWeb.Schema.CampaignTypes do
       arg :config, :json
 
       resolve(&Resolvers.ActionPage.update/3)
+    end
+
+    @desc """
+    Adds a new Action Page based on another Action Page. Intended to be used to
+    create a partner action page based off lead's one. Copies: campaign, locale, journey, config, delivery flag
+    """
+    field :add_action_page, type: :action_page do
+      middleware Authorized,
+        can?: {:org, [:manage_action_pages]},
+        get_by: [name: :org_name]
+
+      @desc "Org owner of new Action Page"
+      arg :org_name, non_null(:string)
+
+      @desc "New Action Page name"
+      arg :name, non_null(:string)
+
+      @desc "Name of Action Page this one is cloned from"
+      arg :from_name, non_null(:string)
+
+      resolve(&Resolvers.ActionPage.copy_from/3)
     end
   end
 
