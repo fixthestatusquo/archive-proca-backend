@@ -8,6 +8,7 @@
       "fields": [{ "key": "test", "value": "test" }]
     },
     "contact": {
+    "birthDate": "1970-01-01",
       "first_name": "test",
       "last_name": "aa",
       "email": "sdf@sdf",
@@ -25,7 +26,6 @@
         "locality": "Vessy"
       }
     },
-    "birthDate": "1970-01-01",
     "privacy": { "optIn": false, "leadOptIn": false }
   },
   "operationName": "addActionContact"
