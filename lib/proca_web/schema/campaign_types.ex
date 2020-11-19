@@ -2,7 +2,7 @@ defmodule ProcaWeb.Schema.CampaignTypes do
   @moduledoc """
   API for campaign and action page entities
   """
-  
+
   use Absinthe.Schema.Notation
   alias ProcaWeb.Resolvers.Authorized
   alias ProcaWeb.Resolvers
@@ -107,7 +107,7 @@ defmodule ProcaWeb.Schema.CampaignTypes do
       @desc """
       Action Page id
       """
-      arg :id, non_null(:integer)
+      arg(:id, non_null(:integer))
 
       @desc """
       Unique NAME identifying ActionPage.
@@ -119,23 +119,23 @@ defmodule ProcaWeb.Schema.CampaignTypes do
       current location.href, in which case it is useful to make this url match
       the real idwget location.
       """
-      arg :name, :string
+      arg(:name, :string)
 
       @desc "2-letter, lowercase, code of ActionPage language"
-      arg :locale, :string
+      arg(:locale, :string)
 
       @desc "A reference to thank you email template of this ActionPage"
-      arg :thank_you_template_ref, :string
+      arg(:thank_you_template_ref, :string)
 
       @desc """
       Extra supporter count. If you want to add a number of signatories you have offline or kept in another system, you can specify the number here. 
       """
-      arg :extra_supporters, :integer
+      arg(:extra_supporters, :integer)
 
       @desc """
       List of steps in the journey (deprecated, pass in config)
       """
-      arg :journey, list_of(non_null(:string))
+      arg(:journey, list_of(non_null(:string)))
 
       @desc """
       JSON string containing Action Page config
@@ -167,7 +167,6 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     end
   end
 
-
   object :campaign do
     field :id, :integer
     @desc "Internal name of the campaign"
@@ -181,18 +180,20 @@ defmodule ProcaWeb.Schema.CampaignTypes do
 
     @desc "Campaign statistics"
     field :stats, :campaign_stats do
-      resolve &Resolvers.Campaign.stats/3
+      resolve(&Resolvers.Campaign.stats/3)
     end
 
     @desc "Fetch public actions"
     field :actions, :public_actions_result do
+      @desc "Return actions of this action type"
       arg(:action_type, non_null(:string))
+      @desc "Limit the number of returned actions, default is 10, max is 100)"
+      arg(:limit, :integer)
       resolve(&Resolvers.ActionQuery.list_by_action_type/3)
     end
 
     field :org, :public_org
   end
-
 
   object :action_page do
     field :id, :integer
@@ -210,8 +211,9 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     field :extra_supporters, :integer
     @desc "Campaign this widget belongs to"
     field :campaign, :campaign do
-      resolve &Resolvers.ActionPage.campaign/3
+      resolve(&Resolvers.ActionPage.campaign/3)
     end
+
     field :org, :public_org
   end
 
@@ -229,8 +231,9 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     field :config, :json
     @desc "Campaign this widget belongs to"
     field :campaign, :campaign do
-      resolve &Resolvers.ActionPage.campaign/3
+      resolve(&Resolvers.ActionPage.campaign/3)
     end
+
     field :org, :public_org
   end
 
@@ -274,7 +277,6 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     field :config, :json
   end
 
-
   @desc "ActionPage declaration (using the legacy url attribute)"
   input_object :action_page_input_legacy_url do
     field :id, :integer
@@ -285,7 +287,6 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     field :journey, list_of(non_null(:string))
     field :config, :string
   end
-
 
   # public counters
   @desc "Campaign statistics"
@@ -306,8 +307,8 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     field :count, non_null(:integer)
   end
 
-
   object :action_custom_fields do
+    field :action_id, non_null(:integer)
     field :action_type, non_null(:string)
     field :inserted_at, non_null(:datetime)
     field :fields, list_of(non_null(:custom_field))

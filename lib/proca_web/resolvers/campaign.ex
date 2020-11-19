@@ -1,38 +1,43 @@
 defmodule ProcaWeb.Resolvers.Campaign do
+  @moduledoc """
+  Resolvers for campaign queries in mutations
+  """
   import Ecto.Query
-  import Ecto.Changeset
   alias Proca.Repo
-  alias Proca.{Campaign,ActionPage,Staffer,Org}
+  alias Proca.{Campaign, ActionPage, Staffer, Org}
   import Proca.Staffer.Permission
   alias ProcaWeb.Helper
   alias Proca.Server.Notify
 
   def list(_, %{id: id}, _) do
-    cl = list_query()
-    |> where([x], x.id == ^id)
-    |> Proca.Repo.all
+    cl =
+      list_query()
+      |> where([x], x.id == ^id)
+      |> Proca.Repo.all()
 
     {:ok, cl}
   end
 
   def list(_, %{name: name}, _) do
-    cl = list_query()
-    |> where([x], x.name == ^name)
-    |> Proca.Repo.all
+    cl =
+      list_query()
+      |> where([x], x.name == ^name)
+      |> Proca.Repo.all()
 
     {:ok, cl}
   end
 
   def list(_, %{title: title}, _) do
-    cl = list_query()
-    |> where([x], like(x.title, ^title))
-    |> Proca.Repo.all
+    cl =
+      list_query()
+      |> where([x], like(x.title, ^title))
+      |> Proca.Repo.all()
 
     {:ok, cl}
   end
 
   def list(_, _, _) do
-    cl = Proca.Repo.all list_query()
+    cl = Proca.Repo.all(list_query())
     {:ok, cl}
   end
 
@@ -42,22 +47,23 @@ defmodule ProcaWeb.Resolvers.Campaign do
 
   def stats(campaign, _a, _c) do
     {supporters, at_cts} = Proca.Server.Stats.stats(campaign.id)
+
     {:ok,
      %{
        supporter_count: supporters,
        action_count: at_cts |> Enum.map(fn {at, ct} -> %{action_type: at, count: ct} end)
-     }
-    }
+     }}
   end
 
   def upsert(_, attrs = %{action_pages: pages}, %{context: %{user: user, org: org}}) do
     # XXX Add name: attributes if url given (Legacy for declare_campaign)
-    pages = Enum.map(pages, fn ap ->
-                 case ap do
-                   %{url: url} -> Map.put(ap, :name, url)
-                   ap -> ap
-                 end
-    end)
+    pages =
+      Enum.map(pages, fn ap ->
+        case ap do
+          %{url: url} -> Map.put(ap, :name, url)
+          ap -> ap
+        end
+      end)
 
     result = Repo.transaction(fn ->
       campaign = upsert_campaign(org, attrs)
@@ -79,7 +85,7 @@ defmodule ProcaWeb.Resolvers.Campaign do
   end
 
   # XXX for declareCampaign support
-  defp fix_page_legacy_url(%{url: url} = page) do
+  defp fix_page_legacy_url(page = %{url: url}) do
     case url do
       "https://" <> n -> %{page | name: n}
       "http://" <> n -> %{page | name: n}
@@ -98,9 +104,9 @@ defmodule ProcaWeb.Resolvers.Campaign do
     end
 
     if campaign.data.id do
-      Repo.update! campaign
+      Repo.update!(campaign)
     else
-      Repo.insert! campaign
+      Repo.insert!(campaign)
     end
   end
 

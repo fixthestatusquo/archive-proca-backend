@@ -1,50 +1,57 @@
 defmodule ProcaWeb.Schema.DataTypes do
+  @moduledoc """
+  Defines custom types used in API, and how to serialize/parse them
+  """
   use Absinthe.Schema.Notation
-  alias ProcaWeb.Resolvers
-
+  import Logger
 
   scalar :datetime do
-    parse fn input ->
-      case DateTime.from_iso8601(input.value) do
+    parse(fn %{value: value} ->
+      case DateTime.from_iso8601(value) do
         {:ok, datetime, _} -> {:ok, datetime}
         _ -> :error
       end
-    end
+      _ -> :error
+    end)
 
-    serialize fn datetime ->
+    serialize(fn datetime ->
       DateTime.from_naive!(datetime, "Etc/UTC")
       |> DateTime.to_iso8601()
-    end
+    end)
   end
 
   scalar :date do
-    parse fn input ->
-      case Date.from_iso8601(input.value) do
+    parse(fn %{value: value} ->
+      case Date.from_iso8601(value) do
         {:ok, date} -> {:ok, date}
         _ -> :error
       end
-    end
+      _ -> :error
+    end)
 
-    serialize fn date ->
+    serialize(fn date ->
       Date.to_iso8601(date)
-    end
+    end)
   end
 
   scalar :json do
-    parse fn input ->
-      case Jason.decode(input.value) do
-        {:ok, object} -> {:ok, object}
-        x ->
-          IO.inspect(x)
+    parse(fn %{value: value} ->
+      case Jason.decode(value) do
+        {:ok, object} ->
+          {:ok, object}
+
+      x ->
+          error [why: "error while decoding json input", input: value, msg: x]
           :error
       end
-    end
+      _ -> :error
+    end)
 
-    serialize fn object ->
+    serialize(fn object ->
       case Jason.encode(object) do
         {:ok, json} -> json
         _ -> :error
       end
-    end
+    end)
   end
 end
