@@ -35,7 +35,7 @@ defmodule ProcaWeb.Schema.OrgTypes do
     end
 
     field :delete_org, type: :boolean do
-      middleware Authorized, can?: {:org, :change_org_settings}, get_by: [:name]
+      middleware Authorized, can?: {:org, :org_owner}, get_by: [:name]
       @desc "Name of organisation"
       arg :name, non_null(:string)
 
@@ -97,6 +97,7 @@ defmodule ProcaWeb.Schema.OrgTypes do
     end
 
     field :activate_key, type: :boolean do
+      middleware Authorized, can?: {:org, :change_org_settings}, get_by: [name: :org_name]
       arg :org_name, non_null(:string)
       arg :id, non_null(:integer)
     end
