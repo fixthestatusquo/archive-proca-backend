@@ -91,7 +91,7 @@ defmodule ProcaWeb.Schema.OrgTypes do
       arg :org_name, non_null(:string)
 
       arg :name, non_null(:string)
-      arg :public, non_null(:string)
+      arg :private, non_null(:string)
 
       resolve(&Resolvers.Org.add_key/3)
     end

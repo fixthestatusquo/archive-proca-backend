@@ -117,17 +117,38 @@ defmodule ProcaWeb.Resolvers.Org do
         :ok,
         from(pk in PublicKey,
           where: pk.org_id == ^org_id,
-          select: %{id: pk.id, name: pk.name, public: pk.public, expired_at: pk.expired_at}
+          select: %{id: pk.id,
+                    name: pk.name,
+                    public: pk.public,
+                    active: pk.active,
+                    expired: pk.expired,
+                    updated_at: pk.updated_at}
         )
         |> Repo.all()
-        |> Enum.map(&Map.put(&1, :public, PublicKey.base_encode(&1.public)))
+        |> Enum.map(fn pk ->
+          pk
+          |> Map.put(:public, PublicKey.base_encode(pk.public))
+          |> Map.put(:exired_at, if pk.expired do pk.updated_at else nil end)
+          end)
       }
     else
       _ -> {:error, "Access forbidden"}
     end
   end
 
+  def add_key(_, %{name: name, private: private}, %{context: %{org: org}}) do
+    with ch = %{valid?: true} <- PublicKey.import_private_for(org, private, name),
+         {:ok, key} <- Repo.insert(ch)
+      do
+        {:ok, key}
+      else
+        ch = %{valid?: false} -> {:error, Helper.format_errors(ch)}
+        {:error, ch} -> {:error, Helper.format_errors(ch)}
+    end
+  end
+
   def generate_key(_, %{name: name}, %{context: %{org: org}}) do
+
     with pk = %{valid?: true} <- PublicKey.build_for(org, name),
          {:ok, _pub_pk} <- change(pk, private: nil) |> Repo.insert()
       do

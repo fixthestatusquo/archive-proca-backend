@@ -69,7 +69,7 @@ defmodule Proca.Org do
         org
         | public_keys:
             org.public_keys
-            |> Enum.filter(fn pk -> is_nil(pk.expired_at) end)
+            |> Enum.filter(& &1.active)
             |> Enum.sort(fn a, b -> a.inserted_at > b.inserted_at end)
       }
     else
@@ -88,7 +88,7 @@ defmodule Proca.Org do
   @spec active_public_keys([Proca.PublicKey]) :: [Proca.PublicKey]
   def active_public_keys(public_keys) do
     public_keys
-    |> Enum.filter(fn pk -> is_nil(pk.expired_at) end)
+    |> Enum.filter(& &1.active)
     |> Enum.sort(fn a, b -> a.inserted_at < b.inserted_at end)
   end
 

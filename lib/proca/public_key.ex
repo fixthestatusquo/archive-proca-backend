@@ -13,23 +13,26 @@ defmodule Proca.PublicKey do
     field :name, :string
     field :public, :binary
     field :private, :binary
-    field :expired_at, :utc_datetime
+    field :active, :boolean, default: false
+    field :expired, :boolean, default: false
     belongs_to :org, Proca.Org
 
     timestamps()
   end
 
-  @derive {Inspect, only: [:id, :name, :org, :expired_at]}
+  @derive {Inspect, only: [:id, :name, :org, :active, :expired]}
 
   @doc false
   def changeset(public_key, attrs) do
     public_key
-    |> cast(attrs, [:name, :expired_at, :public, :private])
-    |> validate_required([:name, :public])
+    |> cast(attrs, [:name, :active, :expired, :public, :private])
+    |> validate_required([:name, :public, :active, :expired])
+    |> validate_bit_size(:public, 256)
+    |> validate_bit_size(:private, 256)
   end
 
   def expire(public_key) do
-    change(public_key, expired_at: DateTime.utc_now())
+    change(public_key, expired: true)
   end
 
   @spec active_key_for(%Proca.Org{}) :: %PublicKey{} | nil
@@ -42,7 +45,7 @@ defmodule Proca.PublicKey do
   def active_keys(preload \\ []) do
     from(pk in PublicKey,
       order_by: [desc: pk.inserted_at],
-      where: is_nil(pk.expired_at),
+      where: pk.active,
       preload: ^preload,
       distinct: pk.org_id
     )
@@ -96,5 +99,30 @@ defmodule Proca.PublicKey do
 
   def base_decode(encoded) when is_bitstring(encoded) do
     Base.url_decode64(encoded, padding: false)
+  end
+
+  def base_decode_changeset(ch) do
+    [:public, :private]
+    |> Enum.reduce(ch, fn f ->
+      case get_change(ch, f) do
+        encoded -> case base_decode(encoded) do
+                     {:ok, decoded} -> change(ch, %{f => decoded})
+                     :error -> add_error(ch, f, "must be Base64url encoded")
+                   end
+        nil -> ch
+      end
+
+    end)
+  end
+
+  def validate_bit_size(ch, field, size) do
+    case get_field(ch, field) do
+      nil -> ch
+      val -> if bit_size(val) == size do
+        ch
+      else
+        add_error(ch, field, "must by #{size} bits")
+      end
+    end
   end
 end
