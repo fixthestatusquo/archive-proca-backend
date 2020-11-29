@@ -6,7 +6,7 @@ defmodule Proca.Stage.ThankYou do
 
   alias Broadway.Message
   alias Broadway.BatchInfo
-  alias Proca.{Org, ActionPage}
+  alias Proca.{Org, ActionPage, Action}
   alias Proca.Repo
   import Ecto.Query
   import Logger
@@ -17,13 +17,7 @@ defmodule Proca.Stage.ThankYou do
     Broadway.start_link(__MODULE__,
       name: __MODULE__,
       producer: [
-        module:
-          {BroadwayRabbitMQ.Producer,
-           queue: "system.email.thankyou",
-           connection: Proca.Server.Plumbing.connection_url(),
-           qos: [
-             prefetch_count: 10
-           ]},
+        module: Proca.Stage.Support.queue("system.email.thankyou", [retry: true]),
         concurrency: 1
       ],
       processors: [
@@ -55,10 +49,11 @@ defmodule Proca.Stage.ThankYou do
 
   @impl true
   def handle_message(_, message = %Message{data: data}, _) do
+    # IO.inspect(message.metadata, label: "metadata")
     case JSON.decode(data) do
       {:ok,
-       %{"actionPageId" => action_page_id, "action" => %{"actionType" => action_type}} = action} ->
-        if send_thank_you?(action_page_id, action_type) do
+       %{"actionPageId" => action_page_id, "actionId" => action_id} = action} ->
+        if send_thank_you?(action_page_id, action_id) do
           message
           |> Message.update_data(fn _ -> action end)
           |> Message.put_batch_key(action_page_id)
@@ -69,7 +64,9 @@ defmodule Proca.Stage.ThankYou do
         end
 
       {:error, reason} ->
-        Message.failed(message, reason)
+        message
+        |> Message.configure_ack(on_failure: :ack)
+        |> Message.failed(reason)
     end
   end
 
@@ -78,7 +75,7 @@ defmodule Proca.Stage.ThankYou do
     ap =
       from(ap in ActionPage,
         where: ap.id == ^ap_id,
-        preload: [org: [:email_backend, :template_backend]]
+        preload: [org: [[email_backend: :org], :template_backend]]
       )
       |> Repo.one()
 
@@ -103,16 +100,20 @@ defmodule Proca.Stage.ThankYou do
     |> Message.ack_immediately()
   end
 
-  defp send_thank_you?(action_page_id, action_type) do
-    from(ap in ActionPage,
+  defp send_thank_you?(action_page_id, action_id) do
+    from(a in Action,
+      join: ap in ActionPage,
+      on: a.action_page_id == ap.id,
       join: o in Org,
       on: o.id == ap.org_id,
       where:
+        a.id == ^action_id and
+        a.with_consent and
         ap.id == ^action_page_id and
           not is_nil(ap.thank_you_template_ref) and
           not is_nil(o.email_backend_id) and
           not is_nil(o.template_backend_id) and
-          fragment("(a0.journey[1] = ? OR a0.journey = '{}')", ^action_type)
+          not is_nil(o.email_from)
     )
     |> Repo.one() != nil
   end
