@@ -54,4 +54,13 @@ defmodule ProcaWeb.Schema.DataTypes do
       end
     end)
   end
+
+  enum :status do
+    value :success, description: "Operation completed succesfully"
+    value :confirming, description: "Operation awaiting confirmation"
+  end
+
+  object :delete_result do
+    field :success, non_null(:boolean)
+  end
 end

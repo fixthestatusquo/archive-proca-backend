@@ -19,127 +19,25 @@ defmodule ProcaWeb.Schema.OrgTypes do
     end
   end
 
-  object :org_mutations do
-    field :add_org, type: :org do
-      middleware Authorized
-      @desc "Name of organisation"
-      arg :name, non_null(:string)
-
-      @desc "Organisation title (human readable name)"
-      arg :title, :string
-
-      # @desc "Whitelisted domain names"
-      # arg :domains, list_of(non_null(:string))
-
-      resolve(&Resolvers.Org.add_org/3)
-    end
-
-    field :delete_org, type: :boolean do
-      middleware Authorized, access: [:org, by: [:name]], can?: :org_owner
-      @desc "Name of organisation"
-      arg :name, non_null(:string)
-
-      resolve(&Resolvers.Org.delete_org/3)
-    end
-
-    field :update_org, type: :org do
-      middleware(Authorized)
-
-      @desc "Name of organisation, used for lookup, can't be used to change org name"
-      arg(:name, non_null(:string))
-
-      @desc "Organisation title (human readable name)"
-      arg(:title, :string)
-
-      @desc "Schema for contact personal information"
-      arg(:contact_schema, :contact_schema)
-
-      @desc "Email opt in enabled"
-      arg(:email_opt_in, :boolean)
-
-      @desc "Email opt in template name"
-      arg(:email_opt_in_template, :string)
-
-      resolve(&Resolvers.Org.update_org/3)
-    end
-
-    field :join_org, type: :boolean do
-      middleware Authorized
-      arg :name, non_null(:string)
-    end
-
-    field :leave_org, type: :boolean do
-      middleware Authorized
-      arg :name, non_null(:string)
-    end
-
-    field :generate_key, type: :key_with_private do
-      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
-
-      @desc "Name of organisation, used for lookup, can't be used to change org name"
-      arg :org_name, non_null(:string)
-
-      arg :name, non_null(:string)
-
-      resolve(&Resolvers.Org.generate_key/3)
-    end
-
-    field :add_key, type: :key do
-      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
-
-      @desc "Name of organisation, used for lookup, can't be used to change org name"
-      arg :org_name, non_null(:string)
-
-      arg :name, non_null(:string)
-      arg :private, non_null(:string)
-
-      resolve(&Resolvers.Org.add_key/3)
-    end
-
-    field :activate_key, type: :boolean do
-      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
-      arg :org_name, non_null(:string)
-      arg :id, non_null(:integer)
-    end
-
-    field :add_user, type: :boolean do
-      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
-      arg :org_name, non_null(:string)
-      arg :email, non_null(:string)
-      arg :role, :string
-    end
-
-    field :update_user, type: :boolean do
-      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
-      arg :org_name, non_null(:string)
-      arg :email, non_null(:string)
-      arg :role, :string
-    end
-
-    field :delete_user, type: :boolean do
-      arg :org_name, non_null(:string)
-      arg :email, non_null(:string)
-    end
-  end
+  # MAIN TYPE
 
   object :org do
     @desc "Organization id"
     field :id, :integer
-
     @desc "Organisation short name"
     field :name, :string
-
     @desc "Organisation title (human readable name)"
     field :title, :string
-
     field :personal_data, non_null(:personal_data) do
       resolve(&Resolvers.Org.org_personal_data/3)
     end
-
     field :keys, non_null(list_of(non_null(:key))) do
+      arg :select, :select_key
       resolve(&Resolvers.Org.list_keys/3)
     end
-
+    field :key, :key do
+      arg :select, :select_key
+    end
     # TODO:
     # field :public_keys, non_null(list_of(non_null(:string)))
     # field :users, non_null(list_of(:org_user))
@@ -163,11 +61,13 @@ defmodule ProcaWeb.Schema.OrgTypes do
 
     @desc "List campaigns this org is leader or partner of"
     field :campaigns, list_of(:campaign) do
+      arg :select, :select_campaign
       resolve(&Resolvers.Org.campaigns/3)
     end
 
     @desc "List action pages this org has"
     field :action_pages, list_of(:action_page) do
+      arg :select, :select_action_page
       resolve(&Resolvers.Org.action_pages/3)
     end
 
@@ -185,6 +85,87 @@ defmodule ProcaWeb.Schema.OrgTypes do
     end
   end
 
+  input_object :org_input do
+    @desc "Name used to rename"
+    field :name, :string
+
+    @desc "Organisation title (human readable name)"
+    field :title, :string
+
+    @desc "Schema for contact personal information"
+    field :contact_schema, :contact_schema
+
+    @desc "Email opt in enabled"
+    field :email_opt_in, :boolean
+
+    @desc "Email opt in template name"
+    field :email_opt_in_template, :string
+  end
+
+
+  object :org_mutations do
+    field :add_org, type: :org do
+      middleware Authorized
+
+      arg :input, non_null(:org_input)
+
+      resolve(&Resolvers.Org.add_org/3)
+    end
+
+    field :delete_org, type: :boolean do
+      middleware Authorized, access: [:org, by: [:name]], can?: :org_owner
+      @desc "Name of organisation"
+      arg :name, non_null(:string)
+
+      resolve(&Resolvers.Org.delete_org/3)
+    end
+
+    field :update_org, type: :org do
+      middleware(Authorized)
+
+      @desc "Name of organisation, used for lookup, can't be used to change org name"
+      arg(:name, non_null(:string))
+      arg(:input, non_null(:org_input))
+
+      resolve(&Resolvers.Org.update_org/3)
+    end
+
+    field :join_org, type: :join_org_result do
+      middleware Authorized
+      arg :name, non_null(:string)
+    end
+
+    field :generate_key, type: :key_with_private do
+      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
+
+      @desc "Name of organisation, used for lookup, can't be used to change org name"
+      arg :org_name, non_null(:string)
+      arg :name, non_null(:string)
+
+      resolve(&Resolvers.Org.generate_key/3)
+    end
+
+    field :add_key, type: :key do
+      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
+
+      @desc "Name of organisation, used for lookup, can't be used to change org name"
+      arg :org_name, non_null(:string)
+      arg :input, non_null(:key_input)
+
+      resolve(&Resolvers.Org.add_key/3)
+    end
+
+    @desc "A separate key activate operation, because you also need to add the key to receiving system before it is used"
+    field :activate_key, type: :activate_key_result do
+      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
+      arg :org_name, non_null(:string)
+      @desc "Key id"
+      arg :id, non_null(:integer)
+    end
+  end
+
+  # OTHER TYPES
+
   object :public_org do
     @desc "Organisation short name"
     field :name, :string
@@ -194,8 +175,9 @@ defmodule ProcaWeb.Schema.OrgTypes do
   end
 
   enum :contact_schema do
-    value(:basic)
-    value(:popular_initiative)
+    value :basic
+    value :popular_initiative
+    value :eci
   end
 
   object :personal_data do
@@ -225,5 +207,25 @@ defmodule ProcaWeb.Schema.OrgTypes do
     field :name, :string
     field :active, :boolean
     field :expired_at, :datetime
+  end
+
+  input_object :key_input do
+    field :name, non_null(:string)
+    field :public, non_null(:string)
+    field :private, :string
+  end
+
+  input_object :select_key do
+    field :id, :integer
+    field :active, :boolean
+    field :public, :string
+  end
+
+  object :join_org_result do
+    field :status, :status
+  end
+
+  object :activate_key_result do
+    field :status, :status
   end
 end
