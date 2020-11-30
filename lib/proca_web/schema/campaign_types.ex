@@ -44,8 +44,8 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     """
     field :upsert_campaign, type: :campaign do
       middleware Authorized,
-        can?: {:org, [:manage_campaigns, :manage_action_pages]},
-        get_by: [name: :org_name]
+        access: [:org, by: [name: :org_name]],
+        can?: [:manage_campaigns, :manage_action_pages]
 
       @desc "Org name"
       arg(:org_name, non_null(:string))
@@ -74,8 +74,8 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     """
     field :declare_campaign, type: :campaign do
       middleware Authorized,
-        can?: {:org, [:manage_campaigns, :manage_action_pages]},
-        get_by: [name: :org_name]
+        access: [:org, by: [name: :org_name]],
+        can?: [:manage_campaigns, :manage_action_pages]
 
       @desc "Org name"
       arg(:org_name, non_null(:string))
@@ -100,8 +100,8 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     """
     field :update_action_page, type: :action_page do
       middleware Authorized,
-        can?: {:action_page, [:manage_action_pages]},
-        get_by: [:id]
+        access: [:action_page, by: [:id]],
+        can?: [:manage_action_pages]
 
       # XXX Copy from action_page_input and find/replace field->arg. GraphQL is silly here
       @desc """
@@ -151,8 +151,8 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     """
     field :add_action_page, type: :action_page do
       middleware Authorized,
-        can?: {:org, [:manage_action_pages]},
-        get_by: [name: :org_name]
+        access: [:org, by: [name: :org_name]],
+        can?: [:manage_action_pages]
 
       @desc "Org owner of new Action Page"
       arg :org_name, non_null(:string)

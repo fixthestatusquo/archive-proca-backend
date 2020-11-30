@@ -35,7 +35,7 @@ defmodule ProcaWeb.Schema.OrgTypes do
     end
 
     field :delete_org, type: :boolean do
-      middleware Authorized, can?: {:org, :org_owner}, get_by: [:name]
+      middleware Authorized, access: [:org, by: [:name]], can?: :org_owner
       @desc "Name of organisation"
       arg :name, non_null(:string)
 
@@ -74,7 +74,7 @@ defmodule ProcaWeb.Schema.OrgTypes do
     end
 
     field :generate_key, type: :key_with_private do
-      middleware Authorized, can?: {:org, :change_org_settings}, get_by: [name: :org_name]
+      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
 
       @desc "Name of organisation, used for lookup, can't be used to change org name"
       arg :org_name, non_null(:string)
@@ -85,7 +85,7 @@ defmodule ProcaWeb.Schema.OrgTypes do
     end
 
     field :add_key, type: :key do
-      middleware Authorized, can?: {:org, :change_org_settings}, get_by: [name: :org_name]
+      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
 
       @desc "Name of organisation, used for lookup, can't be used to change org name"
       arg :org_name, non_null(:string)
@@ -97,20 +97,20 @@ defmodule ProcaWeb.Schema.OrgTypes do
     end
 
     field :activate_key, type: :boolean do
-      middleware Authorized, can?: {:org, :change_org_settings}, get_by: [name: :org_name]
+      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
       arg :org_name, non_null(:string)
       arg :id, non_null(:integer)
     end
 
     field :add_user, type: :boolean do
-      middleware Authorized, can?: {:org, :change_org_users}, get_by: [name: :org_name]
+      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
       arg :org_name, non_null(:string)
       arg :email, non_null(:string)
       arg :role, :string
     end
 
     field :update_user, type: :boolean do
-      middleware Authorized, can?: {:org, :change_org_users}, get_by: [name: :org_name]
+      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
       arg :org_name, non_null(:string)
       arg :email, non_null(:string)
       arg :role, :string
