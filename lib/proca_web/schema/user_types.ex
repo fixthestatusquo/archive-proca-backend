@@ -3,7 +3,7 @@ defmodule ProcaWeb.Schema.UserTypes do
   alias ProcaWeb.Resolvers.Authorized
 
   object :user_queries do
-    field :user, :user do
+    field :current_user, :user do
       middleware Authorized
     end
   end
