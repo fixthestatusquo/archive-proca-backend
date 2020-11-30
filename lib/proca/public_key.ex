@@ -51,6 +51,14 @@ defmodule Proca.PublicKey do
     )
   end
 
+  def activate_for(%{id: org_id}, id) do
+    from(pk in PublicKey, where: pk.org_id == ^org_id and not pk.expired,
+      update: [set: [
+                  active: fragment("id = ?", ^id),
+                  expired: fragment("id != ?", ^id)
+                ]]) |> Repo.update_all([])
+  end
+
   def build_for(org, name \\ "generated") do
     {priv, pub} = Kcl.generate_key_pair()
 
@@ -78,18 +86,15 @@ defmodule Proca.PublicKey do
   end
 
   def import_public_for(org, public, name \\ "imported") do
-    pk =
-      %Proca.PublicKey{}
-      |> changeset(%{name: name})
-      |> put_assoc(:org, org)
-
     case base_decode(public) do
       {:ok, key} when is_binary(key) ->
-        pk
-        |> put_change(:public, key)
+        %Proca.PublicKey{}
+        |> changeset(%{name: name, public: key})
+        |> put_assoc(:org, org)
 
       :error ->
-        add_error(pk, :public, "Cannot decode public key using Base64")
+        %Proca.PublicKey{}
+        |> add_error(:public, "Cannot decode public key using Base64")
     end
   end
 
@@ -124,5 +129,33 @@ defmodule Proca.PublicKey do
         add_error(ch, field, "must by #{size} bits")
       end
     end
+  end
+
+  def filter(query, criteria) when is_map(criteria) do
+    filter(query, Map.to_list(criteria))
+  end
+
+  def filter(query, []) do
+    query
+  end
+
+  def filter(query, [{:id, id} | c]) do
+    query
+    |> where([pk], pk.id == ^id)
+    |> filter(c)
+  end
+
+  def filter(query, [{:active, active?} | c]) do
+    query
+    |> where([pk], pk.active == ^active?)
+    |> filter(c)
+  end
+
+  def filter(query, [{:public, pub_encoded} | c]) do
+    case base_decode(pub_encoded) do
+      {:ok, pub} -> where(query, [pk], pk.public == ^pub)
+      :error -> query
+    end
+    |> filter(c)
   end
 end

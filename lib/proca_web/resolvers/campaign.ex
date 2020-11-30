@@ -55,7 +55,12 @@ defmodule ProcaWeb.Resolvers.Campaign do
      }}
   end
 
-  def upsert(_, attrs = %{action_pages: pages}, %{context: %{user: user, org: org}}) do
+  @doc "XXX deprecated in favor of upsert/3"
+  def declare_upsert(p, attrs, res) do
+    upsert(p, %{input: attrs}, res)
+  end
+
+  def upsert(_, %{input: attrs = %{action_pages: pages}}, %{context: %{org: org}}) do
     # XXX Add name: attributes if url given (Legacy for declare_campaign)
     pages =
       Enum.map(pages, fn ap ->

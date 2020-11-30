@@ -80,6 +80,7 @@ defmodule ProcaWeb.Schema.CampaignTypes do
       resolve(&Resolvers.ActionPage.campaign/3)
     end
 
+    # XXX ^^ resolve association similarly
     field :org, :public_org
   end
 
@@ -149,7 +150,7 @@ defmodule ProcaWeb.Schema.CampaignTypes do
       @desc "Action pages of this campaign"
       arg(:action_pages, non_null(list_of(:action_page_input_legacy_url)))
 
-      resolve(&Resolvers.Campaign.upsert/3)
+      resolve(&Resolvers.Campaign.declare_upsert/3)
     end
 
     @desc """

@@ -15,14 +15,11 @@ defmodule ProcaWeb.Resolvers.Org do
   import Proca.Staffer.Permission
   import Logger
 
-  def get_by_name(_, %{name: name}, %{context: %{user: user}}) do
-    with %Org{} = org <- Org.get_by_name(name, [[campaigns: :org], :action_pages]),
-         %Staffer{} = s <- Staffer.for_user_in_org(user, org.id),
-         true <- can?(s, :use_api) do
-      {:ok, org}
-    else
-      _ -> {:error, "Access forbidden"}
-    end
+  def get_by_name(_, _, %{context: %{org: org}}) do
+    {
+      :ok,
+      Repo.preload(org, [[campaigns: :org], :action_pages])
+    }
   end
 
   def campaign_by_id(org, %{id: camp_id}, _) do
@@ -100,40 +97,48 @@ defmodule ProcaWeb.Resolvers.Org do
     end
   end
 
-  def update_org(_p, %{name: name} = attrs, %{context: %{user: user}}) do
-    with %Org{} = org <- Org.get_by_name(name),
-         %Staffer{} = s <- Staffer.for_user_in_org(user, org.id),
-         true <- can?(s, :use_api) do
-      Org.changeset(org, attrs)
-      |> Repo.update()
-    else
-      _ -> {:error, "Access forbidden"}
+  def update_org(_p, %{input: attrs}, %{context: %{org: org}}) do
+    case Org.changeset(org, attrs) |> Repo.update()
+      do
+      {:error, ch} -> {:error, Helper.format_errors(ch)}
+      {:ok, org} 
     end
   end
 
-  def list_keys(%{id: org_id}, _, %{context: %{user: user}}) do
-    with %Staffer{} = s <- Staffer.for_user_in_org(user, org_id),
-         true <- can?(s, [:use_api, :export_contacts]) do
-      {
-        :ok,
-        from(pk in PublicKey,
-          where: pk.org_id == ^org_id,
-          select: %{id: pk.id,
-                    name: pk.name,
-                    public: pk.public,
-                    active: pk.active,
-                    expired: pk.expired,
-                    updated_at: pk.updated_at}
-        )
-        |> Repo.all()
-        |> Enum.map(fn pk ->
-          pk
-          |> Map.put(:public, PublicKey.base_encode(pk.public))
-          |> Map.put(:exired_at, if pk.expired do pk.updated_at else nil end)
-          end)
-      }
-    else
-      _ -> {:error, "Access forbidden"}
+  def list_keys(org_id, criteria) do
+    from(pk in PublicKey,
+      where: pk.org_id == ^org_id,
+      select: %{id: pk.id,
+                name: pk.name,
+                public: pk.public,
+                active: pk.active,
+                expired: pk.expired,
+                updated_at: pk.updated_at},
+      order_by: [desc: :inserted_at]
+    )
+    |> PublicKey.filter(criteria)
+  end
+
+  def format_key(pk) do
+    pk
+    |> Map.put(:public, PublicKey.base_encode(pk.public))
+    |> Map.put(:private, if Map.get(pk, :private, nil) do PublicKey.base_encode(pk.private) else nil end)
+    |> Map.put(:expired_at, if pk.expired do pk.updated_at else nil end)
+  end
+
+  def list_keys(%{id: org_id}, params, _) do
+    {
+      :ok,
+      list_keys(org_id, Map.get(params, :select, []))
+      |> Repo.all()
+      |> Enum.map(&format_key/1)
+    }
+  end
+
+  def get_key(%{id: org_id}, %{select: criteria}, _) do
+    case list_keys(org_id, criteria) |> Repo.one do
+      nil -> {:error, "not_found"}
+      k -> {:ok, format_key(k)}
     end
   end
 
@@ -156,23 +161,35 @@ defmodule ProcaWeb.Resolvers.Org do
 
   end
 
-  def add_key(_, %{name: name, private: private}, %{context: %{org: org}}) do
-    with ch = %{valid?: true} <- PublicKey.import_private_for(org, private, name),
+  def add_key(_, %{input: %{name: name, public: public}}, %{context: %{org: org}}) do
+    with ch = %{valid?: true} <- PublicKey.import_public_for(org, public, name),
          {:ok, key} <- Repo.insert(ch)
       do
       {:ok, key}
       else
         ch = %{valid?: false} -> {:error, Helper.format_errors(ch)}
-      {:error, ch} -> {:error, Helper.format_errors(ch)}
+        {:error, ch} -> {:error, Helper.format_errors(ch)}
     end
   end
 
-  def generate_key(_, %{name: name}, %{context: %{org: org}}) do
+  # If we modify the instance org, keep the private key
+  defp dont_store_private(%Org{name: name}, pk) do
+    if Application.get_env(:proca, Proca)[:org_name] == name do
+      pk
+    else
+      change(pk, private: nil)
+    end
+  end
+
+  def generate_key(_, %{input: %{name: name}}, %{context: %{org: org}}) do
 
     with pk = %{valid?: true} <- PublicKey.build_for(org, name),
-         {:ok, _pub_pk} <- change(pk, private: nil) |> Repo.insert()
+         pub_prv_pk <- apply_changes(pk),
+         {:ok, pub_pk} <- dont_store_private(org, pk) |> Repo.insert()
       do
-      {:ok, pk}
+      {:ok,
+       format_key(%{pub_prv_pk | id: pub_pk.id})
+      }
       else
         ch = %{valid?: false} -> {:error, Helper.format_errors(ch)}
         {:error, ch} -> {:error, Helper.format_errors(ch)}
@@ -180,31 +197,20 @@ defmodule ProcaWeb.Resolvers.Org do
   end
 
   def activate_key(_, %{id: id}, %{context: %{org: org}}) do
-    now = DateTime.utc_now()
-
-    case Multi.new()
-    |> Multi.run(:pk, fn _, _ ->
-      case Repo.get_by PublicKey, id: id, org_id: org.id do
-        nil ->
-          {:error, %{
-              message: "Public key not found",
-              extensions: %{code: "not_found"}
-           }}
-        pk ->
-          change(pk, expired_at: nil)
-          |> Repo.insert()
-      end
-    end)
-    |> Multi.run(:other, fn _, %{pk: pk} ->
-      Repo.update_all(
-        from(k in PublicKey, where: k.org_id == ^org.id and k.id != ^pk.id),
-        set: [expired_at: now]
-      )
-    end)
-    |> Repo.transaction() do
-     {:ok, %{pk: pk}} -> {:ok, pk}
-     {:error, _v, %Ecto.Changeset{} = changeset, _chj} ->
-       {:error, Helper.format_errors(changeset)}
+    case Repo.get_by PublicKey, id: id, org_id: org.id do
+      nil ->
+        {:error, %{
+            message: "Public key not found",
+            extensions: %{code: "not_found"}
+         }}
+      %{expired: true} ->
+        {:error, %{
+            message: "Public key expired",
+            extensions: %{code: "expired"}
+         }}
+      _pk ->
+        PublicKey.activate_for(org, id)
+        {:ok, %{status: :success}}
     end
   end
 end

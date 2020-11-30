@@ -10,7 +10,7 @@ defmodule ProcaWeb.Schema.OrgTypes do
   object :org_queries do
     @desc "Organization api (authenticated)"
     field :org, :org do
-      middleware(Authorized)
+      middleware(Authorized, access: [:org, by: [:name]])
 
       @desc "Name of organisation"
       arg(:name, non_null(:string))
@@ -32,12 +32,16 @@ defmodule ProcaWeb.Schema.OrgTypes do
       resolve(&Resolvers.Org.org_personal_data/3)
     end
     field :keys, non_null(list_of(non_null(:key))) do
+      middleware Authorized, can?: :export_contacts
       arg :select, :select_key
       resolve(&Resolvers.Org.list_keys/3)
     end
     field :key, :key do
-      arg :select, :select_key
+      middleware Authorized, can?: :export_contacts
+      arg :select, non_null(:select_key)
+      resolve(&Resolvers.Org.get_key/3)
     end
+
     # TODO:
     # field :public_keys, non_null(list_of(non_null(:string)))
     # field :users, non_null(list_of(:org_user))
@@ -121,7 +125,9 @@ defmodule ProcaWeb.Schema.OrgTypes do
     end
 
     field :update_org, type: :org do
-      middleware(Authorized)
+      middleware Authorized,
+        access: [:org, by: [:name]],
+        can?: [:change_org_settings]
 
       @desc "Name of organisation, used for lookup, can't be used to change org name"
       arg(:name, non_null(:string))
@@ -136,31 +142,40 @@ defmodule ProcaWeb.Schema.OrgTypes do
     end
 
     field :generate_key, type: :key_with_private do
-      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
+      middleware Authorized,
+        access: [:org, by: [name: :org_name]],
+        can?: [:change_org_settings, :export_contacts]
 
-      @desc "Name of organisation, used for lookup, can't be used to change org name"
+      @desc "Name of organisation"
       arg :org_name, non_null(:string)
-      arg :name, non_null(:string)
+      arg :input, non_null(:gen_key_input)
 
       resolve(&Resolvers.Org.generate_key/3)
     end
 
     field :add_key, type: :key do
-      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
+      middleware Authorized,
+        access: [:org, by: [name: :org_name]],
+        can?: [:change_org_settings, :export_contacts]
 
-      @desc "Name of organisation, used for lookup, can't be used to change org name"
+      @desc "Name of organisation"
       arg :org_name, non_null(:string)
-      arg :input, non_null(:key_input)
+      arg :input, non_null(:add_key_input)
 
       resolve(&Resolvers.Org.add_key/3)
     end
 
     @desc "A separate key activate operation, because you also need to add the key to receiving system before it is used"
     field :activate_key, type: :activate_key_result do
-      middleware Authorized, access: [:org, by: [name: :org_name]], can?: :change_org_settings
+      middleware Authorized,
+        access: [:org, by: [name: :org_name]],
+        can?: [:change_org_settings, :export_contacts]
+
       arg :org_name, non_null(:string)
       @desc "Key id"
       arg :id, non_null(:integer)
+
+      resolve(&Resolvers.Org.activate_key/3)
     end
   end
 
@@ -197,6 +212,7 @@ defmodule ProcaWeb.Schema.OrgTypes do
     field :public, non_null(:string)
     field :name, :string
     field :active, :boolean
+    field :expired, :boolean
     field :expired_at, :datetime
   end
 
@@ -206,13 +222,17 @@ defmodule ProcaWeb.Schema.OrgTypes do
     field :private, non_null(:string)
     field :name, :string
     field :active, :boolean
+    field :expired, :boolean
     field :expired_at, :datetime
   end
 
-  input_object :key_input do
+  input_object :add_key_input do
     field :name, non_null(:string)
     field :public, non_null(:string)
-    field :private, :string
+  end
+
+  input_object :gen_key_input do
+    field :name, non_null(:string)
   end
 
   input_object :select_key do

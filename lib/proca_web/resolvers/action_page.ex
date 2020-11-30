@@ -55,7 +55,7 @@ defmodule ProcaWeb.Resolvers.ActionPage do
     }
   end
 
-  def update(_, attrs, %{context: %{action_page: ap}}) do
+  def update(_, %{input: attrs}, %{context: %{action_page: ap}}) do
     case ap
     |> ActionPage.changeset(attrs)
     |> Repo.update()
