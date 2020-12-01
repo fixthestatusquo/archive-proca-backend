@@ -7,7 +7,7 @@ defmodule Proca.PublicKey do
   import Ecto.Changeset
   import Ecto.Query
   alias Proca.Repo
-  alias Proca.PublicKey
+  alias Proca.{PublicKey, Org}
 
   schema "public_keys" do
     field :name, :string
@@ -51,7 +51,8 @@ defmodule Proca.PublicKey do
     )
   end
 
-  def activate_for(%{id: org_id}, id) do
+  @spec activate_for(Org, integer) :: {integer(), nil}
+  def activate_for(%Org{id: org_id}, id) do
     from(pk in PublicKey, where: pk.org_id == ^org_id and not pk.expired,
       update: [set: [
                   active: fragment("id = ?", ^id),
