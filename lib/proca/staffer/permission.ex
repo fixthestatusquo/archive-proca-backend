@@ -4,7 +4,10 @@ defmodule Proca.Staffer.Permission do
 
   @moduledoc """
   Permission bits used in proca.
-  Should be named with a verb.
+  Should be named with a verb_noun (_owner is an exception here).
+
+  manage - add/delete/update objects
+  change - change some object's association or properties
   """
 
   @bits [
