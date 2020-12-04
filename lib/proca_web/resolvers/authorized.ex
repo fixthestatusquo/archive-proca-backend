@@ -68,6 +68,10 @@ defmodule ProcaWeb.Resolvers.Authorized do
     resolution
   end
 
+  def verify_perms(resolution = %{state: :resolved}, _) do
+    resolution
+  end
+
   def verify_perms(resolution = %{context: %{staffer: staffer}}, perms) do
     if Staffer.Permission.can?(staffer, perms) do
       resolution
@@ -87,6 +91,7 @@ defmodule ProcaWeb.Resolvers.Authorized do
   end
 
   def verify_perms(resolution = %{context: %{}}, _perms) do
+    IO.inspect(resolution.state, label: "STATE")
     resolution
     |> Absinthe.Resolution.put_result(
       {
