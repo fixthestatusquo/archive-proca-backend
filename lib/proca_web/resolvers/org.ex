@@ -10,6 +10,7 @@ defmodule ProcaWeb.Resolvers.Org do
   alias Proca.{Org, Staffer, PublicKey}
   alias ProcaWeb.Helper
   alias Ecto.Multi
+  alias Proca.Server.Notify
 
   alias Proca.Repo
   import Proca.Staffer.Permission
@@ -208,8 +209,9 @@ defmodule ProcaWeb.Resolvers.Org do
             message: "Public key expired",
             extensions: %{code: "expired"}
          }}
-      _pk ->
+      pk = %PublicKey{} ->
         PublicKey.activate_for(org, id)
+        Notify.public_key_activated(org, pk)
         {:ok, %{status: :success}}
     end
   end

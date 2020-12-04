@@ -14,6 +14,11 @@ defmodule Proca.Server.Notify do
 
   @spec public_key_created(Org, PublicKey) :: :ok
   def public_key_created(org, key) do
+    :ok
+  end
+
+  @spec public_key_activated(Org, PublicKey) :: :ok
+  def public_key_activated(org, key) do
     Proca.Server.Keys.update_key(org, key)
   end
 

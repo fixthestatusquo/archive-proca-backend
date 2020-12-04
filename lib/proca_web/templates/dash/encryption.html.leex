@@ -14,7 +14,8 @@
             </code>
             <%= if pk.expired do %>
               <span class="float-right badge badge-secondary">expired</span>
-            <% else %>
+            <% end %>
+            <%= if pk.active do %>
               <span class="float-right badge badge-warning">active</span>
             <% end %>
           </p>
