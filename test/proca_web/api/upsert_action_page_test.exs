@@ -14,7 +14,7 @@ defmodule ProcaWeb.Api.UpsertActionPage do
     } do
       query = """
       mutation Uap {
-        updateActionPage(id: #{ap.id}, locale: "jp") {
+        updateActionPage(id: #{ap.id}, input: {locale: "jp"}) {
           locale
         }
       }
@@ -36,10 +36,15 @@ defmodule ProcaWeb.Api.UpsertActionPage do
       query = """
       mutation Uap {
       updateActionPage(id: #{ap.id},
-      locale: "jp",
-      name: "https://yellow.org/other",
-      journey: ["sign", "share"],
-      config: "{\\"foo\\": 123}") {
+      input: {
+        locale: "jp",
+        name: "https://yellow.org/other",
+        journey: ["sign", "share"],
+        config: "{\\"foo\\": 123}"
+      }
+      )
+      
+      {
       id
       }
       }
