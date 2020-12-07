@@ -210,7 +210,7 @@ defmodule ProcaWeb.Resolvers.Org do
             extensions: %{code: "expired"}
          }}
       pk = %PublicKey{} ->
-        PublicKey.activate_for(org, id)
+        pk = PublicKey.activate_for(org, id)
         Notify.public_key_activated(org, pk)
         {:ok, %{status: :success}}
     end

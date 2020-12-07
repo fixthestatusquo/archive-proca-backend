@@ -214,11 +214,6 @@ defmodule ProcaWeb.Schema.CampaignTypes do
   @desc "ActionPage input"
   input_object :action_page_input do
     @desc """
-    Action Page id
-    """
-    field :id, :integer
-
-    @desc """
     Unique NAME identifying ActionPage.
 
     Does not have to exist, must be unique. Can be a 'technical' identifier
@@ -284,7 +279,7 @@ defmodule ProcaWeb.Schema.CampaignTypes do
   object :action_custom_fields do
     field :action_id, non_null(:integer)
     field :action_type, non_null(:string)
-    field :inserted_at, non_null(:datetime)
+    field :inserted_at, non_null(:date_time)
     field :fields, list_of(non_null(:custom_field))
   end
 

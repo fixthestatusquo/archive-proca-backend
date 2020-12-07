@@ -5,7 +5,7 @@ defmodule ProcaWeb.Schema.DataTypes do
   use Absinthe.Schema.Notation
   import Logger
 
-  scalar :datetime do
+  scalar :date_time do
     parse(fn %{value: value} ->
       case DateTime.from_iso8601(value) do
         {:ok, datetime, _} -> {:ok, datetime}

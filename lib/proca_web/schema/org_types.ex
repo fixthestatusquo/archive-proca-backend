@@ -213,7 +213,7 @@ defmodule ProcaWeb.Schema.OrgTypes do
     field :name, :string
     field :active, :boolean
     field :expired, :boolean
-    field :expired_at, :datetime
+    field :expired_at, :date_time
   end
 
   object :key_with_private do
@@ -223,7 +223,7 @@ defmodule ProcaWeb.Schema.OrgTypes do
     field :name, :string
     field :active, :boolean
     field :expired, :boolean
-    field :expired_at, :datetime
+    field :expired_at, :date_time
   end
 
   input_object :add_key_input do

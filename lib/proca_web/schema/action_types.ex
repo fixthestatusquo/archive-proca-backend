@@ -22,7 +22,7 @@ defmodule ProcaWeb.Schema.ActionTypes do
       @desc "return only actions with id starting from this argument (inclusive)"
       arg(:start, :integer)
       @desc "return only actions created at date time from this argument (inclusive)"
-      arg(:after, :datetime)
+      arg(:after, :date_time)
       @desc "Limit the number of returned actions"
       arg(:limit, :integer)
 
@@ -168,7 +168,7 @@ defmodule ProcaWeb.Schema.ActionTypes do
   # XXX maybe rename to :exported_action or something
   object :action do
     field :action_id, non_null(:integer)
-    field :created_at, non_null(:datetime)
+    field :created_at, non_null(:date_time)
     field :action_type, non_null(:string)
     field :contact, non_null(:contact)
     field :fields, non_null(list_of(non_null(:custom_field)))
