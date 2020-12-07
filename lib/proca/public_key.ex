@@ -51,13 +51,13 @@ defmodule Proca.PublicKey do
     )
   end
 
-  @spec activate_for(Org, integer) :: {integer(), nil}
+  @spec activate_for(Org, integer) :: PublicKey
   def activate_for(%Org{id: org_id}, id) do
     from(pk in PublicKey, where: pk.org_id == ^org_id and not pk.expired,
       update: [set: [
-                  active: fragment("id = ?", ^id),
-                  expired: fragment("id != ?", ^id)
+                  active: fragment("id = ?", ^id)
                 ]]) |> Repo.update_all([])
+    Repo.get PublicKey, id
   end
 
   def build_for(org, name \\ "generated") do
