@@ -208,7 +208,7 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     field(:config, :json)
 
     @desc "Action pages of this campaign"
-    field(:action_pages, non_null(list_of(:action_page_input)))
+    field(:action_pages, non_null(list_of(non_null(:action_page_input))))
   end
 
   @desc "ActionPage input"
