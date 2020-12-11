@@ -51,7 +51,7 @@ defmodule Proca.MixProject do
       {:jason, "~> 1.2"},
       {:sentry, "~> 7.0"},
       {:plug_cowboy, "~> 2.3"},
-      {:absinthe, "1.5.0"},
+      {:absinthe, "1.5.5"},
       {:absinthe_phoenix, "~> 2.0"},
       {:absinthe_plug, "~> 1.5.0"},
       {:cors_plug, "~> 2.0"},
