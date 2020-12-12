@@ -1,4 +1,7 @@
 defmodule Proca.Factory do
+  @moduledoc """
+  Main schema Factory for tests
+  """
   use ExMachina.Ecto, repo: Proca.Repo
   alias Proca.Factory
 
@@ -10,9 +13,11 @@ defmodule Proca.Factory do
     }
   end
 
-  def public_key_factory(%{org: org}) do
+  def public_key_factory(attrs = %{org: org}) do
     name = sequence("public_key")
-    Proca.PublicKey.build_for(org) |> Ecto.Changeset.apply_changes
+    Proca.PublicKey.build_for(org, name)
+    |> Ecto.Changeset.change(Map.delete(attrs, :org))
+    |> Ecto.Changeset.apply_changes
   end
 
   def campaign_factory do
@@ -112,7 +117,7 @@ defmodule Proca.Factory do
     }
   end
 
-  def action_factory(%{action_page: ap, action_type: at} = attrs) do
+  def action_factory(%{action_page: ap, action_type: at}) do
     s = build(:basic_data_pl_supporter_with_contact, action_page: ap)
     %Proca.Action{
       action_type: at,

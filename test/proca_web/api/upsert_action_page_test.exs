@@ -7,38 +7,53 @@ defmodule ProcaWeb.Api.UpsertActionPage do
       red_story()
     end
 
-    test "red bot user can't update yellow action page", %{conn: conn, red_bot: %{user: user}, yellow_ap: ap} do
+    test "red bot user can't update yellow action page", %{
+      conn: conn,
+      red_bot: %{user: user},
+      yellow_ap: ap
+    } do
       query = """
       mutation Uap {
-        updateActionPage(id: #{ap.id}, locale: "jp") {
+        updateActionPage(id: #{ap.id}, input: {locale: "jp"}) {
           locale
         }
       }
       """
 
-      res = conn
-      |> auth_api_post(query, user.email)
-      |> json_response(200)
+      res =
+        conn
+        |> auth_api_post(query, user.email)
+        |> json_response(200)
 
-      assert %{"errors" => [%{"message" => "User cannot manage this action page"}]} = res
+      assert %{"errors" => [%{"message" => "User is not a member of team responsible for resource"}]} = res
     end
 
-    test "red bot can update red action page by id",  %{conn: conn, red_bot: %{user: user}, red_ap: ap} do
+    test "red bot can update red action page by id", %{
+      conn: conn,
+      red_bot: %{user: user},
+      red_ap: ap
+    } do
       query = """
       mutation Uap {
       updateActionPage(id: #{ap.id},
-      locale: "jp",
-      name: "https://yellow.org/other",
-      journey: ["sign", "share"],
-      config: "{\\"foo\\": 123}") {
+      input: {
+        locale: "jp",
+        name: "https://yellow.org/other",
+        journey: ["sign", "share"],
+        config: "{\\"foo\\": 123}"
+      }
+      )
+      
+      {
       id
       }
       }
       """
 
-      res = conn
-      |> auth_api_post(query, user.email)
-      |> json_response(200)
+      res =
+        conn
+        |> auth_api_post(query, user.email)
+        |> json_response(200)
 
       assert res["errors"] == nil
       assert res["data"]["updateActionPage"]["id"] == ap.id

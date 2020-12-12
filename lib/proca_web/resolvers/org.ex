@@ -1,31 +1,33 @@
 defmodule ProcaWeb.Resolvers.Org do
+  @moduledoc """
+  Resolvers for org { } root query
+  """
   # import Ecto.Query
-  import Ecto.Changeset
   import Ecto.Query
+  import Ecto.Changeset
 
-  alias Proca.{ActionPage, Campaign, Contact, Supporter, Source}
+  alias Proca.{ActionPage, Campaign, Action}
   alias Proca.{Org, Staffer, PublicKey}
+  alias ProcaWeb.Helper
+  alias Ecto.Multi
+  alias Proca.Server.Notify
 
   alias Proca.Repo
-  alias ProcaWeb.Helper
   import Proca.Staffer.Permission
+  import Logger
 
-
-  def get_by_name(_, %{name: name}, %{context: %{user: user}})  do
-    with %Org{} = org <- Org.get_by_name(name, [[campaigns: :org], :action_pages]),
-         %Staffer{} = s <- Staffer.for_user_in_org(user, org.id),
-           true <- can?(s, :use_api)
-      do
-      {:ok, org}
-    else
-      _ -> {:error, "Access forbidden"}
-    end
+  def get_by_name(_, _, %{context: %{org: org}}) do
+    {
+      :ok,
+      Repo.preload(org, [[campaigns: :org], :action_pages])
+    }
   end
 
   def campaign_by_id(org, %{id: camp_id}, _) do
-    c = Campaign.select_by_org(org)
-    |> where([c], c.id == ^camp_id)
-    |> Repo.one
+    c =
+      Campaign.select_by_org(org)
+      |> where([c], c.id == ^camp_id)
+      |> Repo.one()
 
     case c do
       nil -> {:error, "not_found"}
@@ -34,9 +36,10 @@ defmodule ProcaWeb.Resolvers.Org do
   end
 
   def campaigns(org, _, _) do
-    cl = Campaign.select_by_org(org)
-    |> preload([c], [:org])
-    |> Repo.all
+    cl =
+      Campaign.select_by_org(org)
+      |> preload([c], [:org])
+      |> Repo.all()
 
     {:ok, cl}
   end
@@ -45,109 +48,25 @@ defmodule ProcaWeb.Resolvers.Org do
     c = Ecto.assoc(org, :action_pages)
     |> preload([ap], [:org])
     |> Repo.all
-    |> Enum.map(&ActionPage.stringify_config(&1))
 
     {:ok, c}
   end
 
   def action_page(%{id: org_id}, params, _) do
-    case  ProcaWeb.Resolvers.ActionPage.find(nil, params, nil) do
-      {:ok, %ActionPage{org_id: ^org_id}} = ret -> ret
-      {:ok, %ActionPage{}} -> {:error, %{
-                                  message: "Action page not found",
-                                  extensions: %{code: "not_found"}
-                               }}
-      {:error, x} -> {:error, x}
+    case ProcaWeb.Resolvers.ActionPage.find(nil, params, nil) do
+      {:ok, %ActionPage{org_id: ^org_id}} = ret ->
+        ret
+
+      {:ok, %ActionPage{}} ->
+        {:error,
+         %{
+           message: "Action page not found",
+           extensions: %{code: "not_found"}
+         }}
+
+      {:error, x} ->
+        {:error, x}
     end
-  end
-
-
-  defp org_signatures(org) do
-    from(s in Supporter,
-      join: c in Contact, on: s.id == c.supporter_id,
-      join: ap in ActionPage, on: s.action_page_id == ap.id,
-      order_by: [asc: s.id],
-      where: c.org_id == ^org.id
-    )
-  end
-
-  defp org_signatures_for_campaign(org, campaign_id) do
-    org_signatures(org)
-    |> where([s, c, ap], ap.campaign_id == ^campaign_id)
-  end
-
-  defp signatures_list(query, limit_sigs) do
-    my_pk = Proca.Server.Encrypt.get_keys()
-
-    q = case limit_sigs do
-          nil -> query
-          lim -> query |> limit(^lim)
-        end
-
-    q = select(q, [s, c, ap], %{
-          id: s.id,
-          created: s.inserted_at,
-          nonce: c.crypto_nonce,
-          contact: c.payload,
-          action_page_id: ap.id,
-          campaign_id: ap.campaign_id,
-          opt_in: c.communication_consent
-               })
-
-    sigs = Repo.all q
-
-    {
-      :ok,
-      %{
-        public_key: PublicKey.base_encode(my_pk.public),
-        list: Enum.map(sigs, fn s -> %{s |
-                                       nonce: case s.nonce do
-                                                nonce when is_nil(nonce) -> nil
-                                                nonce -> Contact.base_encode(s.nonce)
-                                              end,
-                                       contact: case s.nonce do
-                                                  nonce when is_nil(nonce) -> s.contact
-                                                  nonce -> Contact.base_encode(s.contact)
-                                                end
-                                      }
-        end)
-      }
-    }
-  end
-
-
-  def signatures(org, arg = %{campaign_id: campaign_id, start: id}, _) do
-    org_signatures_for_campaign(org, campaign_id)
-    |> where([s, c, ap], c.id >= ^id)
-    |> signatures_list(Map.get(arg, :limit))
-  end
-
-  def signatures(org, arg = %{campaign_id: campaign_id, after: dt}, _) do
-    org_signatures_for_campaign(org, campaign_id)
-    |> where([s, c, ap], s.inserted_at >= ^dt)
-    |> signatures_list(Map.get(arg, :limit))
-  end
-
-  def signatures(org, arg = %{campaign_id: campaign_id}, _) do
-    org_signatures_for_campaign(org, campaign_id)
-    |> signatures_list(Map.get(arg, :limit))
-  end
-
-  def signatures(org, arg = %{start: id}, _) do
-    org_signatures(org)
-    |> where([s, c, ap], c.id >= ^id)
-    |> signatures_list(Map.get(arg, :limit))
-  end
-
-  def signatures(org, arg = %{after: dt}, _) do
-    org_signatures(org)
-    |> where([s, c, ap], s.inserted_at >= ^dt)
-    |> signatures_list(Map.get(arg, :limit))
-  end
-
-  def signatures(org, arg, _) do
-    org_signatures(org)
-    |> signatures_list(Map.get(arg, :limit))
   end
 
   def org_personal_data(org, _args, _ctx) do
@@ -161,32 +80,139 @@ defmodule ProcaWeb.Resolvers.Org do
     }
   end
 
-  def update_org(_p, %{name: name} = attrs, %{context: %{user: user}}) do
-    with %Org{} = org <- Org.get_by_name(name),
-         %Staffer{} = s <- Staffer.for_user_in_org(user, org.id),
-           true <- can?(s, :use_api)
+  def add_org(_, params, %{context: %{user: user}}) do
+    with {:ok, org} <- Org.changeset(%Org{}, params) |> Repo.insert(),
+         perms <- Staffer.Permission.add(0, Staffer.Role.permissions(:owner)),
+         {:ok, staffer} <- Staffer.build_for(user, org.id, perms) |> Repo.insert()
       do
-      Org.changeset(org, attrs)
-      |> Repo.update()
-      else
-        _ -> {:error, "Access forbidden"}
+      {:ok, org}
+    else
+      {:error, changeset} -> Helper.format_errors(changeset)
     end
   end
 
-  def list_keys(%{id: org_id}, _, %{context: %{user: user}}) do
-    with %Staffer{} = s <- Staffer.for_user_in_org(user, org_id),
-         true <- can?(s, [:use_api, :export_contacts])
+  def delete_org(_, _, %{context: %{org: org}}) do
+    case Repo.delete(org) do
+      {:ok, _} -> {:ok, true}
+      {:error, ch} -> {:error, Helper.format_errors(ch)}
+    end
+  end
+
+  def update_org(_p, %{input: attrs}, %{context: %{org: org}}) do
+    case Org.changeset(org, attrs) |> Repo.update()
       do
-      {
-        :ok,
-        from(pk in PublicKey, where: pk.org_id == ^org_id,
-          select: %{id: pk.id, name: pk.name, public: pk.public, expired_at: pk.expired_at})
-          |> Repo.all
-          |> Enum.map(&Map.put(&1, :public, PublicKey.base_encode(&1.public)))
+      {:error, ch} -> {:error, Helper.format_errors(ch)}
+      {:ok, org} 
+    end
+  end
+
+  def list_keys(org_id, criteria) do
+    from(pk in PublicKey,
+      where: pk.org_id == ^org_id,
+      select: %{id: pk.id,
+                name: pk.name,
+                public: pk.public,
+                active: pk.active,
+                expired: pk.expired,
+                updated_at: pk.updated_at},
+      order_by: [desc: :inserted_at]
+    )
+    |> PublicKey.filter(criteria)
+  end
+
+  def format_key(pk) do
+    pk
+    |> Map.put(:public, PublicKey.base_encode(pk.public))
+    |> Map.put(:private, if Map.get(pk, :private, nil) do PublicKey.base_encode(pk.private) else nil end)
+    |> Map.put(:expired_at, if pk.expired do pk.updated_at else nil end)
+  end
+
+  def list_keys(%{id: org_id}, params, _) do
+    {
+      :ok,
+      list_keys(org_id, Map.get(params, :select, []))
+      |> Repo.all()
+      |> Enum.map(&format_key/1)
+    }
+  end
+
+  def get_key(%{id: org_id}, %{select: criteria}, _) do
+    case list_keys(org_id, criteria) |> Repo.one do
+      nil -> {:error, "not_found"}
+      k -> {:ok, format_key(k)}
+    end
+  end
+
+  def sample_email(%{action_id: id}, email) do
+    with a when not is_nil(a) <- Repo.one(from(a in Action, where: a.id == ^id,
+                 preload: [action_page:
+                           [org:
+                            [email_backend: :org]
+                           ]
+                          ])),
+         ad <- Proca.Stage.Support.action_data(a),
+           recp <- %{Proca.Service.EmailRecipient.from_action_data(ad) | email: email},
+           %{thank_you_template_ref: tr} <- a.action_page,
+           tmpl <- %Proca.Service.EmailTemplate{ref: tr}
+      do
+      Proca.Service.EmailBackend.deliver([recp], a.action_page.org, tmpl)
+      else
+        e -> error("sample email", e)
+    end
+
+  end
+
+  def add_key(_, %{input: %{name: name, public: public}}, %{context: %{org: org}}) do
+    with ch = %{valid?: true} <- PublicKey.import_public_for(org, public, name),
+         {:ok, key} <- Repo.insert(ch)
+      do
+      {:ok, key}
+      else
+        ch = %{valid?: false} -> {:error, Helper.format_errors(ch)}
+        {:error, ch} -> {:error, Helper.format_errors(ch)}
+    end
+  end
+
+  # If we modify the instance org, keep the private key
+  defp dont_store_private(%Org{name: name}, pk) do
+    if Application.get_env(:proca, Proca)[:org_name] == name do
+      pk
+    else
+      change(pk, private: nil)
+    end
+  end
+
+  def generate_key(_, %{input: %{name: name}}, %{context: %{org: org}}) do
+
+    with pk = %{valid?: true} <- PublicKey.build_for(org, name),
+         pub_prv_pk <- apply_changes(pk),
+         {:ok, pub_pk} <- dont_store_private(org, pk) |> Repo.insert()
+      do
+      {:ok,
+       format_key(%{pub_prv_pk | id: pub_pk.id})
       }
       else
-        _ -> {:error, "Access forbidden"}
+        ch = %{valid?: false} -> {:error, Helper.format_errors(ch)}
+        {:error, ch} -> {:error, Helper.format_errors(ch)}
+    end
+  end
+
+  def activate_key(_, %{id: id}, %{context: %{org: org}}) do
+    case Repo.get_by PublicKey, id: id, org_id: org.id do
+      nil ->
+        {:error, %{
+            message: "Public key not found",
+            extensions: %{code: "not_found"}
+         }}
+      %{expired: true} ->
+        {:error, %{
+            message: "Public key expired",
+            extensions: %{code: "expired"}
+         }}
+      pk = %PublicKey{} ->
+        pk = PublicKey.activate_for(org, id)
+        Notify.public_key_activated(org, pk)
+        {:ok, %{status: :success}}
     end
   end
 end
-

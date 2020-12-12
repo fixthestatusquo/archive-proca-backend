@@ -14,7 +14,6 @@ defmodule Proca.Server.Keys do
 
   # SERVER INITIALIZATION
 
-
   @doc "Start Encrypt server"
   def start_link(nil) do
     {:error, "Please set instance ORG_NAME to specify name"}
@@ -31,15 +30,21 @@ defmodule Proca.Server.Keys do
   Pass the org name to handle_continue :get_keys to fetch all keys
   """
   def init(org_name) do
-    :erlang.process_flag(:sensitive, true) 
+    :erlang.process_flag(:sensitive, true)
 
-    info "Start Keys server with #{org_name} instance org"
+    info("Start Keys server with #{org_name} instance org")
+
     case Org.get_by_name(org_name) do
-      %Org{id: id} -> {
-        :ok,
-        {id, sensitive_data_wrap(%{}), :crypto.strong_rand_bytes(24)},
-        {:continue, :get_keys}}
-      nil -> :ignore # {:stop, "Can't find org #{org_name} to be instance org"}
+      %Org{id: id} ->
+        {
+          :ok,
+          {id, sensitive_data_wrap(%{}), :crypto.strong_rand_bytes(24)},
+          {:continue, :get_keys}
+        }
+
+      # {:stop, "Can't find org #{org_name} to be instance org"}
+      nil ->
+        :ignore
     end
   end
 
@@ -56,12 +61,14 @@ defmodule Proca.Server.Keys do
           :noreply,
           {ioid, sensitive_data_wrap(keys), nonce}
         }
-        _ -> {:stop, "No usable public key for instance org (id: #{ioid})", nil}
+
+      _ ->
+        {:stop, "No usable public key for instance org (id: #{ioid})", nil}
     end
   end
 
   @impl true
-  def format_status(reason, [pdict, state]) do
+  def format_status(_reason, [pdict, _state]) do
     # XXX ?
     {__MODULE__, pdict}
   end
@@ -69,21 +76,22 @@ defmodule Proca.Server.Keys do
   # SERVER PART
   @impl true
   def handle_call(
-    {:encryption, [to: to_id]},
-    from,
-    {ioid, _k, _n} = state
-  ) do
+        {:encryption, [to: to_id]},
+        from,
+        state = {ioid, _k, _n}
+      ) do
     handle_call(
       {:encryption, [from: ioid, to: to_id]},
       from,
-      state)
+      state
+    )
   end
 
   def handle_call(
-    {:encryption, [from: from_id, to: to_id]},
-    _from,
-    {ioid, keys, nonce}
-  ) do
+        {:encryption, [from: from_id, to: to_id]},
+        _from,
+        {ioid, keys, nonce}
+      ) do
     k = keys.()
     from_key = k[from_id]
     to_key = k[to_id]
@@ -101,13 +109,11 @@ defmodule Proca.Server.Keys do
 
   @impl true
   def handle_cast(
-    {:update_key, org_id, keyf},
-    {ioid, keys, nonce}
-  ) do
+        {:update_key, org_id, keyf},
+        {ioid, keys, nonce}
+      ) do
     keys2 = keys.() |> Map.put(org_id, keyf.())
-    {:noreply,
-     {ioid, sensitive_data_wrap(keys2), nonce}
-    }
+    {:noreply, {ioid, sensitive_data_wrap(keys2), nonce}}
   end
 
   # SERVER API
@@ -116,19 +122,23 @@ defmodule Proca.Server.Keys do
     GenServer.call(__MODULE__, {:encryption, from_to})
   end
 
-  def update_key(org, key) do
+  def update_key(org, key = %{active: true}) do
     GenServer.cast(__MODULE__, {:update_key, org.id, sensitive_data_wrap(key)})
     :ok
   end
 
+  def update_key(_org, pk) do
+    raise "Tried to use an inactive key id: #{pk.id}"
+  end
+
   # HELPER FUNCTIONS
-  @nonce_bits 24*8
+  @nonce_bits 24 * 8
   @doc "
   Increment nonce by 1. Should be run after every successful encryption.
   "
-  defp increment_nonce(nonce) do
-    << x :: @nonce_bits >> = nonce
-    << x + 1 :: @nonce_bits >>
+  def increment_nonce(nonce) do
+    <<x::@nonce_bits>> = nonce
+    <<x + 1::@nonce_bits>>
   end
 
   defp sensitive_data_wrap(data) do

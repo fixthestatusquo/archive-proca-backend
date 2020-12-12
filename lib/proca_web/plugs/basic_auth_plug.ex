@@ -1,12 +1,15 @@
 defmodule ProcaWeb.Plugs.BasicAuthPlug do
+  @moduledoc """
+  A plug that reads JWT from Authorization header and authenticates the user
+  """
   @behaviour Plug
 
   alias Plug.Conn
-  alias Pow.{Plug, Store.CredentialsCache}
+  alias Pow.Plug
   alias Proca.Users.User
+  import ProcaWeb.Plugs.Helper
 
-
- #   Absinthe.Plug.put_options(conn, context: context)
+  #   Absinthe.Plug.put_options(conn, context: context)
   def init(opts), do: opts
 
   def call(conn, _) do
@@ -22,8 +25,6 @@ defmodule ProcaWeb.Plugs.BasicAuthPlug do
     case Conn.get_req_header(conn, "authorization") do
       # Basic Auth
       ["Basic " <> token] -> try_authorize(token, conn)
-      |> Conn.delete_req_header("authorization")
-        
       # not Basic authorization
       _ -> conn
     end
@@ -35,21 +36,27 @@ defmodule ProcaWeb.Plugs.BasicAuthPlug do
          {:ok, conn} <- Plug.authenticate_user(conn, %{"email" => email, "password" => pass}) do
       conn
     else
-      {:error, conn = %Conn{}} -> conn
-      |> Conn.send_resp(401, "Unauthorized")
-      |> Conn.halt()
+      {:error, conn = %Conn{}} ->
+        conn
+        |> error_halt(
+          401,
+          "unauthorized",
+          "Can not authenticate with these Basic HTTP credentials"
+        )
 
-      _ -> conn
-      |> Conn.send_resp(401, "Malformed authorization")
-      |> Conn.halt()
+      _ ->
+        conn
+        |> error_halt(400, "unauthorized", "Malformed Basic auth header")
     end
   end
 
   defp add_to_context(conn) do
     case conn.assigns.user do
-      %User{} = u -> 
+      %User{} = u ->
         Absinthe.Plug.put_options(conn, context: %{user: u})
-      nil -> conn
+
+      nil ->
+        conn
     end
   end
 end

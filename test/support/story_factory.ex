@@ -42,12 +42,25 @@ defmodule Proca.StoryFactory do
     orange_ap2 = Factory.insert(:action_page, campaign: yellow_camp, org: red_org, name: @red_website <> "/we-donate-with-yellow")
 
     %{
-      red_org: red_org, yellow_org: yellow_org,
+      red_org: red_org,       yellow_org: yellow_org,
       red_campaign: red_camp, yellow_campaign: yellow_camp,
-      red_ap: red_ap, yellow_ap: yellow_ap,
+      red_ap: red_ap,         yellow_ap: yellow_ap,
       orange_aps: [orange_ap1, orange_ap2],
       red_bot: red_bot
     }
 
   end
+
+  def eci_story() do
+    org = Factory.insert(:org, name: "runner", title: "ECI runner", contact_schema: :eci)
+    camp = Factory.insert(:campaign, name: "the-eci", title: "ECI", org: org)
+    ap = Factory.insert(:action_page, campaign: camp, org: org, name: "eci.eu/pl", locale: "pl")
+
+    %{
+      org: org,
+      campaign: camp,
+      pages: [ap]
+    }
+  end
+
 end

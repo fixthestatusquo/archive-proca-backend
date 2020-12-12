@@ -1,25 +1,23 @@
 defmodule Proca.Stage.ThankYou do
+  @moduledoc """
+  Processing "stage" that sends thank you emails
+  """
   use Broadway
 
   alias Broadway.Message
   alias Broadway.BatchInfo
-  alias Proca.{Action,Org,ActionPage}
+  alias Proca.{Org, ActionPage, Action}
   alias Proca.Repo
   import Ecto.Query
-  alias Proca.Service.{EmailBackend, EmailRecipient, EmailTemplate}
   import Logger
+  
+  alias Proca.Service.{EmailBackend, EmailRecipient, EmailTemplate}
 
   def start_link(_opts) do
     Broadway.start_link(__MODULE__,
       name: __MODULE__,
       producer: [
-        module: {BroadwayRabbitMQ.Producer,
-                 queue: "system.email.thankyou",
-                 connection: Proca.Server.Plumbing.connection_url(),
-                 qos: [
-                   prefetch_count: 10,
-                 ]
-                },
+        module: Proca.Stage.Support.queue("system.email.thankyou", [retry: true]),
         concurrency: 1
       ],
       processors: [
@@ -50,10 +48,12 @@ defmodule Proca.Stage.ThankYou do
   """
 
   @impl true
-  def handle_message(_, %Message{data: data} = message, _) do
+  def handle_message(_, message = %Message{data: data}, _) do
+    # IO.inspect(message.metadata, label: "metadata")
     case JSON.decode(data) do
-      {:ok, %{"actionPageId" => action_page_id, "action" => %{"actionType" => action_type}} = action} ->
-        if send_thank_you? action_page_id, action_type do
+      {:ok,
+       %{"actionPageId" => action_page_id, "actionId" => action_id} = action} ->
+        if send_thank_you?(action_page_id, action_id) do
           message
           |> Message.update_data(fn _ -> action end)
           |> Message.put_batch_key(action_page_id)
@@ -63,18 +63,25 @@ defmodule Proca.Stage.ThankYou do
           |> Message.put_batcher(:noop)
         end
 
-      {:error, reason} -> Message.failed(message, reason)
+      {:error, reason} ->
+        message
+        |> Message.configure_ack(on_failure: :ack)
+        |> Message.failed(reason)
     end
   end
 
   @impl true
   def handle_batch(:transactional, messages, %BatchInfo{batch_key: ap_id}, _) do
-    ap = from(ap in ActionPage, where: ap.id == ^ap_id,
-      preload: [org: [:email_backend, :template_backend]]) |> Repo.one
+    ap =
+      from(ap in ActionPage,
+        where: ap.id == ^ap_id,
+        preload: [org: [[email_backend: :org], :template_backend]]
+      )
+      |> Repo.one()
 
     recipients = Enum.map(messages, fn m -> EmailRecipient.from_action_data(m.data) end)
 
-    Logger.info("Sending thank you email to these recipients: #{inspect(recipients)}")
+    info("Sending thank you email to these recipients: #{inspect(recipients)}")
     tmpl = %EmailTemplate{ref: ap.thank_you_template_ref}
 
     try do
@@ -82,7 +89,7 @@ defmodule Proca.Stage.ThankYou do
       messages
     rescue
       x in EmailBackend.NotDeliverd ->
-        Logger.error("Failed to send email batch #{x.message}")
+        error("Failed to send email batch #{x.message}")
         Enum.map(messages, &Message.failed(&1, x.message))
     end
   end
@@ -93,14 +100,21 @@ defmodule Proca.Stage.ThankYou do
     |> Message.ack_immediately()
   end
 
-  defp send_thank_you?(action_page_id, action_type) do
-    from(ap in ActionPage, join: o in Org, on: o.id == ap.org_id,
-      where: ap.id == ^action_page_id
-      and not is_nil(ap.thank_you_template_ref)
-      and not is_nil(o.email_backend_id)
-      and not is_nil(o.template_backend_id)
-      and fragment("(a0.journey[1] = ? OR a0.journey = '{}')", ^action_type)
+  defp send_thank_you?(action_page_id, action_id) do
+    from(a in Action,
+      join: ap in ActionPage,
+      on: a.action_page_id == ap.id,
+      join: o in Org,
+      on: o.id == ap.org_id,
+      where:
+        a.id == ^action_id and
+        a.with_consent and
+        ap.id == ^action_page_id and
+          not is_nil(ap.thank_you_template_ref) and
+          not is_nil(o.email_backend_id) and
+          not is_nil(o.template_backend_id) and
+          not is_nil(o.email_from)
     )
-    |> Repo.one != nil
+    |> Repo.one() != nil
   end
 end

@@ -10,8 +10,7 @@ defmodule Proca.ActionPage do
   import Ecto.Query
 
   alias Proca.Repo
-  alias Proca.{ActionPage, Campaign, Org, Contact, Supporter}
-  alias Proca.Contact.Data
+  alias Proca.{ActionPage, Campaign, Org}
 
   schema "action_pages" do
     field :locale, :string
@@ -33,11 +32,23 @@ defmodule Proca.ActionPage do
   @doc false
   def changeset(action_page, attrs) do
     action_page
-    |> cast(attrs, [:name, :locale, :extra_supporters, :delivery, :thank_you_template_ref, :journey])
-    |> validate_required([:name, :locale])
-    |> validate_format(:name, ~r/^(?:http(s)?:\/\/)?([[:alnum:]-_]+|[[:alnum:]-]+(?:\.[[:alnum:]\.-]+)+)(?:\/[[:alnum:]_-]+)+$/)
+    |> cast(attrs, [
+      :name,
+      :locale,
+      :extra_supporters,
+      :delivery,
+      :thank_you_template_ref,
+      :journey,
+      :config
+    ])
+    |> validate_required([:name, :locale, :extra_supporters])
+    |> unique_constraint(:name)
+    |> validate_format(
+      :name,
+      ~r/^(?:http(s)?:\/\/)?([[:alnum:]-_]+|[[:alnum:]-]+(?:\.[[:alnum:]\.-]+)+)(?:\/[[:alnum:]_-]+)+$/
+    )
     |> remove_schema_from_name()
-    |> cast_json(:config, Map.get(attrs, :config, nil))
+    # |> cast_json(:config, Map.get(attrs, :config, nil))
   end
 
   def changeset(attrs) do
@@ -51,9 +62,15 @@ defmodule Proca.ActionPage do
 
   def cast_json(changeset, key, json_string) do
     case Jason.decode(json_string) do
-      {:ok, map} -> change(changeset, %{key => map})
+      {:ok, map} ->
+        change(changeset, %{key => map})
+
       {:error, %Jason.DecodeError{data: err_data, position: err_pos, token: err_token}} ->
-        add_error(changeset, key, "Cannot decode json for #{key}: #{err_data} at #{err_pos} (token: #{err_token})")
+        add_error(
+          changeset,
+          key,
+          "Cannot decode json for #{key}: #{err_data} at #{err_pos} (token: #{err_token})"
+        )
     end
   end
 
@@ -68,7 +85,7 @@ defmodule Proca.ActionPage do
   end
 
   def remove_schema_from_name(name) when is_bitstring(name) do
-    Regex.replace(~r/^https?:\/\//, name, "") 
+    Regex.replace(~r/^https?:\/\//, name, "")
   end
 
   def stringify_config(action_page = %ActionPage{}) do
@@ -84,9 +101,10 @@ defmodule Proca.ActionPage do
   """
   def upsert(org, campaign, attrs = %{id: id}) do
     (Repo.get_by(ActionPage,
-          org_id: org.id,
-          campaign_id: campaign.id,
-          id: id) || %ActionPage{})
+       org_id: org.id,
+       campaign_id: campaign.id,
+       id: id
+     ) || %ActionPage{})
     |> ActionPage.changeset(attrs)
     |> put_change(:campaign_id, campaign.id)
     |> put_change(:org_id, org.id)
@@ -94,23 +112,28 @@ defmodule Proca.ActionPage do
 
   def upsert(org, campaign, attrs = %{name: name}) do
     (Repo.get_by(ActionPage,
-          org_id: org.id,
-          campaign_id: campaign.id,
-          name: name) || %ActionPage{})
+       org_id: org.id,
+       campaign_id: campaign.id,
+       name: name
+     ) || %ActionPage{})
     |> ActionPage.changeset(attrs)
     |> put_change(:campaign_id, campaign.id)
     |> put_change(:org_id, org.id)
   end
 
   def upsert(org, campaign, attrs) do
-      %ActionPage{}
-      |> ActionPage.changeset(attrs)
-      |> put_change(:campaign_id, campaign.id)
-      |> put_change(:org_id, org.id)
+    %ActionPage{}
+    |> ActionPage.changeset(attrs)
+    |> put_change(:campaign_id, campaign.id)
+    |> put_change(:org_id, org.id)
   end
 
-  def find(id) do
+  def find(id) when is_integer(id) do
     Repo.one from a in ActionPage, where: a.id == ^id, preload: [:campaign, :org]
+  end
+
+  def find(name) when is_bitstring(name) do
+    Repo.one from a in ActionPage, where: a.name == ^name, preload: [:campaign, :org]
   end
 
   def contact_schema(%ActionPage{campaign: %Campaign{org: %Org{contact_schema: cs}}}) do
@@ -119,6 +142,15 @@ defmodule Proca.ActionPage do
       :popular_initiative -> Proca.Contact.PopularInitiativeData
       :eci -> Proca.Contact.EciData
     end
+  end
+
+  def kept_personalization_fields(
+        action_page = %ActionPage{
+          campaign: campaign,
+          org: org
+        }
+      ) do
+    [:email, :first_name]
   end
 
   def new_data(params, action_page) do

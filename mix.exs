@@ -60,11 +60,12 @@ defmodule Proca.MixProject do
       {:broadway_rabbitmq, "~> 0.6.1"},
       {:bamboo, "~> 1.5.0"},
       # {:bamboo_mailjet, "~> 0.1.0"},
-      {:bamboo_mailjet, path: "/home/marcin/Projects/bamboo_mailjet"},
+      {:bamboo_mailjet, github: "fixthestatusquo/bamboo_mailjet", branch: "feat/formatter_recipients"},
       {:ex_aws, "~> 2.1"},
       {:ex_aws_ses, "~> 2.1"},
       {:ex_aws_sqs, "~> 3.2"},
       {:hackney, "~> 1.16.0"},
+      {:hcaptcha, "~> 0.0.1"},
       {:sweet_xml, "~> 0.6"},
       {:jose, "~> 1.10.0"},
       {:json, "~> 1.3.0"},  # XXX migrate to jason
@@ -74,7 +75,7 @@ defmodule Proca.MixProject do
       {:pow, "~> 1.0.20"},
       {:proper_case, "~> 1.0.2"},
       {:ex_doc, "~> 0.21", only: :dev, runtime: false},
-      {:logger_file_backend, "~> 0.0.11"},
+      {:logger_file_backend, "~> 0.0.11"}, # TODO: evaluate if we need this
       {:mix_systemd, "~> 0.7.3"},
       {:floki, ">= 0.0.0", only: :test},
       {:ex_machina, "~> 2.4", only: :test},
