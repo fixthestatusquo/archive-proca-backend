@@ -1,10 +1,12 @@
 defmodule ProcaWeb.Schema.UserTypes do
   use Absinthe.Schema.Notation
   alias ProcaWeb.Resolvers.Authorized
+  alias ProcaWeb.Resolvers
 
   object :user_queries do
     field :current_user, :user do
       middleware Authorized
+      resolve(&Resolvers.User.current_user/3)
     end
   end
 
