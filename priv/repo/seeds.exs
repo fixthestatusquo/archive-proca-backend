@@ -22,6 +22,8 @@ if is_nil(org) do
 else
   case org.public_keys do
     [%Proca.PublicKey{private: p} = pk | _] when not is_nil(p) -> {:ok, pk}
-    [] -> Proca.PublicKey.build_for(org, "seeded keys (because were missing)") |> Proca.Repo.insert()
+    [] -> Proca.PublicKey.build_for(org, "seeded keys (because were missing)")
+    |> Ecto.Changeset.put_change(:active, true)
+    |> Proca.Repo.insert()
   end
 end
