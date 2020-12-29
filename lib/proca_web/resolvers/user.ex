@@ -25,7 +25,7 @@ defmodule ProcaWeb.Resolvers.User do
        email: user.email,
        roles: Enum.map(user.staffers, fn stf ->
          %{
-           role: Role.findrole(stf),
+           role: Role.findrole(stf) || "custom",
            org: stf.org
          }
        end)
