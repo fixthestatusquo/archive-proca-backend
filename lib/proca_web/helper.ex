@@ -66,7 +66,7 @@ defmodule ProcaWeb.Helper do
     |> Enum.map(fn k ->
       flatten_errors(
         Map.get(map, k),
-        [ProperCase.to_camel_case(k) | path]
+        [ProperCase.camel_case(k) | path]
       )
     end)
     |> Enum.concat()
