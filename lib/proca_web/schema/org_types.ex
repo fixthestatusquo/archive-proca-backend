@@ -28,6 +28,8 @@ defmodule ProcaWeb.Schema.OrgTypes do
     field :name, non_null(:string)
     @desc "Organisation title (human readable name)"
     field :title, non_null(:string)
+
+    @desc "Personal data settings for this org"
     field :personal_data, non_null(:personal_data) do
       resolve(&Resolvers.Org.org_personal_data/3)
     end
@@ -213,7 +215,7 @@ defmodule ProcaWeb.Schema.OrgTypes do
     field :name, non_null(:string)
     field :active, non_null(:boolean)
     field :expired, non_null(:boolean)
-    field :expired_at, non_null(:date_time)
+    field :expired_at, :date_time
   end
 
   object :key_with_private do
@@ -223,7 +225,7 @@ defmodule ProcaWeb.Schema.OrgTypes do
     field :name, non_null(:string)
     field :active, non_null(:boolean)
     field :expired, non_null(:boolean)
-    field :expired_at, non_null(:date_time)
+    field :expired_at, :date_time
   end
 
   input_object :add_key_input do
