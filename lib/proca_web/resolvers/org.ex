@@ -44,8 +44,18 @@ defmodule ProcaWeb.Resolvers.Org do
     {:ok, cl}
   end
 
-  def action_pages(org, _, _) do
+  def action_pages_select(query, %{select: %{campaign_id: cid}}) do
+    query
+    |> where([ap], ap.campaign_id == ^cid)
+  end
+
+  def action_pages_select(query, _) do
+    query
+  end
+
+  def action_pages(org, params, _) do
     c = Ecto.assoc(org, :action_pages)
+    |> action_pages_select(params)
     |> preload([ap], [:org])
     |> Repo.all
 
