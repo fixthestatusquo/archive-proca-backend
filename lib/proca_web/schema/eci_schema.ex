@@ -32,7 +32,7 @@ defmodule ProcaWeb.Schema.EciSchema do
     @desc "Adds an action with contact data"
     field :add_action_contact, type: non_null(:contact_reference) do
       middleware(Resolvers.IncludeExtensions)
-      middleware(Resolvers.Captcha)
+      middleware(Resolvers.Captcha, defer: true)
 
       arg(:action_page_id, non_null(:integer))
 

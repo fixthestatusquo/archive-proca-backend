@@ -73,13 +73,21 @@ defmodule ProcaWeb.Resolvers.Action do
   def link_references(_supporter, %{}) do
   end
 
-  def add_action_contact(_, params = %{action: action, contact: contact, privacy: priv}, _) do
+  def add_action_contact(_, params = %{action: action, contact: contact, privacy: priv}, resolution) do
     case Multi.new()
          |> Multi.run(:action_page, fn _repo, _m ->
            get_action_page(params)
          end)
          |> Multi.run(:data, fn _repo, %{action_page: action_page} ->
            Helper.validate(ActionPage.new_data(contact, action_page))
+         end)
+         |> Multi.run(:captcha, fn _repo, _ ->
+           case ProcaWeb.Resolvers.Captcha.verify(resolution) do
+             resolution = %{state: :resolved} ->
+               {:error, resolution.errors}
+             _ ->
+               {:ok, Map.has_key?(resolution.extensions, :captcha)}
+           end
          end)
          |> Multi.run(:supporter, fn repo, %{data: data, action_page: action_page} ->
            Supporter.new_supporter(data, action_page)

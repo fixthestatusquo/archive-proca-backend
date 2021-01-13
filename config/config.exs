@@ -19,6 +19,7 @@ config :proca, ProcaWeb.Endpoint,
   live_view: [signing_salt: "uM50prEz688OESGJwzwxmFgxf5ZRaw4w"],
   router: if System.get_env("ENABLE_ECI"), do: ProcaWeb.EciRouter, else: ProcaWeb.Router
 
+# Willfully leaked Hcaptcha secret (used only for development)
 config :proca, ProcaWeb.Resolvers.Captcha,
   hcaptcha: "0x8565EF658CA7fdE55203a4725Dd341b5147dEcf2"
 
@@ -27,6 +28,7 @@ config :proca, Proca,
   org_name: "test",
   stats_sync_interval: 0  # XXX move to Proca.Server.Stats
 
+# FPR seed only for development
 config :proca, Proca.Supporter,
   fpr_seed: "4xFc6MsafPEwc6ME"
 
@@ -64,4 +66,3 @@ config :sentry,
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"
-
