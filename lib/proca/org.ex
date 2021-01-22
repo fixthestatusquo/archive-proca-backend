@@ -19,6 +19,9 @@ defmodule Proca.Org do
 
     field :contact_schema, ContactSchema, default: :basic
 
+    # avoid storing transient data in clear
+    field :high_security, :boolean, default: false
+
     # services and delivery options
     has_many :services, Proca.Service, on_delete: :delete_all
     belongs_to :email_backend, Proca.Service

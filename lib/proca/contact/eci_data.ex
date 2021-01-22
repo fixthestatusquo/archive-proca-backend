@@ -20,6 +20,8 @@ defmodule Proca.Contact.EciData do
     field :street, :string
     field :street_number, :string
 
+    field :area, :string
+
     embeds_one :nationality, Input.Nationality
   end
 
@@ -135,8 +137,10 @@ defmodule Proca.Contact.EciData do
         postcode: a.postcode,
         city: a.locality,
         street: a.street,
-        street_number: a.street_number
+        street_number: a.street_number,
+        area: d.nationality.country
       })
+      |> validate_length(:area, max: 5)
     else
       ch
     end
