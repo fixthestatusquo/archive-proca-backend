@@ -48,7 +48,8 @@ defmodule ProcaWeb.ActionResolverTest do
     assert length(sup.actions) == 1
     assert length(sup.contacts) == 1
 
-    assert is_nil(sup.first_name)
+    assert not is_nil(sup.first_name)
+    assert not is_nil(sup.area)
     assert is_nil(sup.email)
 
     assert %{

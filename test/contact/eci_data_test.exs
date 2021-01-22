@@ -68,8 +68,8 @@ defmodule EciDataTest do
 
     assert [
              %{
-               message: "document_number: has invalid format",
-               path: [:nationality, :document_number]
+               message: "documentNumber: has invalid format",
+               path: ["nationality", "documentNumber"]
              }
            ] = format_errors(c)
   end
@@ -82,14 +82,14 @@ defmodule EciDataTest do
 
     assert not c.valid?
 
-    assert [%{message: "document_number: can't be blank", path: [:nationality, :document_number]}] =
+    assert [%{message: "documentNumber: can't be blank", path: ["nationality", "documentNumber"]}] =
              format_errors(c)
 
     no_dt = %{d | nationality: %{n | document_type: nil}}
     c = EciData.from_input(no_dt)
     assert not c.valid?
 
-    assert [%{message: "document_type: can't be blank", path: [:nationality, :document_type]}] =
+    assert [%{message: "documentType: can't be blank", path: ["nationality", "documentType"]}] =
              format_errors(c)
 
     no_docs = %{d | nationality: %{country: n.country}}
@@ -98,10 +98,10 @@ defmodule EciDataTest do
 
     assert [
              %{
-               message: "document_number: can't be blank",
-               path: [:nationality, :document_number]
+               message: "documentNumber: can't be blank",
+               path: ["nationality", "documentNumber"]
              },
-             %{message: "document_type: can't be blank", path: [:nationality, :document_type]}
+             %{message: "documentType: can't be blank", path: ["nationality", "documentType"]}
            ] = format_errors(c)
 
     wrong_type = %{d | nationality: %{n | document_type: "id.card"}}
@@ -110,8 +110,8 @@ defmodule EciDataTest do
 
     assert [
              %{
-               message: "document_number: has invalid format",
-               path: [:nationality, :document_number]
+               message: "documentNumber: has invalid format",
+               path: ["nationality", "documentNumber"]
              }
            ] = format_errors(c)
 
@@ -119,7 +119,7 @@ defmodule EciDataTest do
     c = EciData.from_input(unsupported_type)
     assert not c.valid?
 
-    assert [%{message: "document_type: is invalid", path: [:nationality, :document_type]}] =
+    assert [%{message: "documentType: is invalid", path: ["nationality", "documentType"]}] =
              format_errors(c)
   end
 
@@ -133,7 +133,7 @@ defmodule EciDataTest do
     d = %{gr | address: %{gr.address | country: nil}}
     c = EciData.from_input(d)
     assert not c.valid?
-    assert [%{message: "country: can't be blank", path: [:address, :country]}] = format_errors(c)
+    assert [%{message: "country: can't be blank", path: ["address", "country"]}] = format_errors(c)
   end
 
   test "Greek with missing locality", %{gr: gr} do
@@ -141,7 +141,7 @@ defmodule EciDataTest do
     c = EciData.from_input(d)
     assert not c.valid?
 
-    assert [%{message: "locality: can't be blank", path: [:address, :locality]}] =
+    assert [%{message: "locality: can't be blank", path: ["address", "locality"]}] =
              format_errors(c)
   end
 
@@ -150,7 +150,7 @@ defmodule EciDataTest do
     c = EciData.from_input(d)
     assert not c.valid?
 
-    assert [%{message: "postcode: has invalid format", path: [:address, :postcode]}] =
+    assert [%{message: "postcode: has invalid format", path: ["address", "postcode"]}] =
              format_errors(c)
   end
 

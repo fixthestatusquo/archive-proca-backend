@@ -222,6 +222,7 @@ defmodule ProcaWeb.Schema.ActionTypes do
   @desc "GDPR consent data for this org"
   object :consent do
     field :opt_in, non_null(:boolean)
+    # XXX field :given_at, non_null(:date_time)
   end
 
   @desc "Tracking codes"
