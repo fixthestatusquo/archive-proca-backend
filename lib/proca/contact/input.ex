@@ -40,7 +40,7 @@ defmodule Proca.Contact.Input do
 
   def validate_name(chst, field) do
     chst
-    |> validate_format(field, ~r/^[\p{L}'][ \p{L},'-]*[\p{L}.]$/u)
+    |> validate_format(field, ~r/^[\p{L}']([ \p{L},'-]*[\p{L}.])?$/u)
   end
 
   def validate_address_line(chst, field) do
