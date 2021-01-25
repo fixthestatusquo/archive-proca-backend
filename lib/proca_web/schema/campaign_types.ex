@@ -260,8 +260,11 @@ defmodule ProcaWeb.Schema.CampaignTypes do
   # public counters
   @desc "Campaign statistics"
   object :campaign_stats do
-    @desc "Signature count (naive at the moment)"
+    @desc "Unique action tagers count"
     field :supporter_count, non_null(:integer)
+
+    @desc "Unique action takers by area"
+    field :supporter_count_by_area, non_null(list_of(non_null(:area_count)))
 
     @desc "Action counts for selected action types"
     field :action_count, non_null(list_of(non_null(:action_type_count)))
@@ -275,6 +278,16 @@ defmodule ProcaWeb.Schema.CampaignTypes do
     @desc "count of actions of action type"
     field :count, non_null(:integer)
   end
+
+  @desc "Count of actions for particular action type"
+  object :area_count do
+    @desc "area"
+    field :area, non_null(:string)
+
+    @desc "count of supporters in this area"
+    field :count, non_null(:integer)
+  end
+
 
   object :action_custom_fields do
     field :action_id, non_null(:integer)

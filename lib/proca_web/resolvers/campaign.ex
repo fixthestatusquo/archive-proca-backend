@@ -46,12 +46,13 @@ defmodule ProcaWeb.Resolvers.Campaign do
   end
 
   def stats(campaign, _a, _c) do
-    {supporters, at_cts} = Proca.Server.Stats.stats(campaign.id)
+    {supporters, at_cts, supporters_by_areas} = Proca.Server.Stats.stats(campaign.id)
 
     {:ok,
      %{
        supporter_count: supporters,
-       action_count: at_cts |> Enum.map(fn {at, ct} -> %{action_type: at, count: ct} end)
+       supporter_count_by_area: supporters_by_areas |> Enum.map(fn {area, ct} -> %{area: area, count: ct} end),
+       action_count: at_cts |> Enum.map(fn {at, ct} -> %{action_type: at, count: ct} end),
      }}
   end
 

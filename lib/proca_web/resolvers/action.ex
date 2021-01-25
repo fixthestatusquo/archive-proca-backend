@@ -110,7 +110,7 @@ defmodule ProcaWeb.Resolvers.Action do
          end)
          |> Repo.transaction() do
       {:ok, %{supporter: supporter, action: action}} ->
-        Notify.action_created(action, true)
+        Notify.action_created(action, supporter)
         {:ok, output(supporter)}
 
       {:error, _v, %Ecto.Changeset{} = changeset, _chj} ->
@@ -139,7 +139,7 @@ defmodule ProcaWeb.Resolvers.Action do
          end)
          |> Repo.transaction() do
       {:ok, %{supporter: supporter, action: action}} ->
-        Notify.action_created(action, false)
+        Notify.action_created(action)
         {:ok, output(supporter)}
 
       {:error, _v, %Ecto.Changeset{} = changeset, _chj} ->
