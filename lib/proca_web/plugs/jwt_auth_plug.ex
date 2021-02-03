@@ -10,6 +10,7 @@ defmodule ProcaWeb.Plugs.JwtAuthPlug do
   alias Proca.Repo
   alias Proca.Users.User
   import ProcaWeb.Plugs.Helper
+  import Logger
 
   @pow_config [otp_app: :proca]
 
@@ -47,11 +48,12 @@ defmodule ProcaWeb.Plugs.JwtAuthPlug do
         fields: %{
           "session" => %{
             "identity" => %{
-              "traits" => %{"email" => email}
+              "traits" => %{"email" => email} = traits
             }
           }
         }
       } ->
+        Logger.info("JWT traits: #{inspect(traits)}") # XXX remove later
         case Repo.get_by(User, email: email) do
           nil -> Plug.assign_current_user(conn, User.create(email), User.pow_config())
           user -> Plug.assign_current_user(conn, user, User.pow_config())
