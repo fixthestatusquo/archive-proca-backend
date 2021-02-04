@@ -10,7 +10,6 @@ defmodule ProcaWeb.Plugs.JwtAuthPlug do
   alias Proca.Repo
   alias Proca.Users.User
   import ProcaWeb.Plugs.Helper
-  import Logger
 
   @pow_config [otp_app: :proca]
 
@@ -29,16 +28,42 @@ defmodule ProcaWeb.Plugs.JwtAuthPlug do
   """
   def jwt_auth(conn, param) do
     with token when not is_nil(token) <- get_token(conn, param),
-         {true, jwt, _sig} <- Proca.Server.Jwks.verify(token) do
+         {true, jwt, _sig} <- Proca.Server.Jwks.verify(token),
+         :ok <- check_email_verified(jwt)
+     do
       conn
       |> get_or_create_user(jwt)
     else
       {false, _, _} ->
         error_halt(conn, 401, "unauthorized", "JWT token invalid")
 
+      :unverified -> 
+        error_halt(conn, 401, "unauthorized", "Email not verified")
+
       # no token
       nil ->
         conn
+    end
+  end
+
+  def check_email_verified(jwt) do 
+    if need_verified_email? do
+      case jwt do 
+        %JOSE.JWT{
+          fields: %{
+            "session" => %{
+              "identity" => %{
+                "verifiable_addresses" => %{
+                  "verified" => verified? 
+                }
+              }
+            }
+          }
+        } -> verified?
+        _ -> :unverified
+      end
+    else
+      :ok
     end
   end
 
@@ -48,12 +73,11 @@ defmodule ProcaWeb.Plugs.JwtAuthPlug do
         fields: %{
           "session" => %{
             "identity" => %{
-              "traits" => %{"email" => email} = traits
+              "traits" => %{"email" => email}
             }
-          }
+          } 
         }
       } ->
-        Logger.info("JWT traits: #{inspect(traits)}") # XXX remove later
         case Repo.get_by(User, email: email) do
           nil -> Plug.assign_current_user(conn, User.create(email), User.pow_config())
           user -> Plug.assign_current_user(conn, user, User.pow_config())
@@ -63,6 +87,7 @@ defmodule ProcaWeb.Plugs.JwtAuthPlug do
         conn
     end
   end
+
 
   defp get_token(conn, nil) do
     case Conn.get_req_header(conn, "authorization") do
@@ -95,5 +120,9 @@ defmodule ProcaWeb.Plugs.JwtAuthPlug do
       user = %User{} -> conn |> Session.create(user, @pow_config) |> elem(0)
       _ -> conn
     end
+  end
+
+  defp need_verified_email? do
+    Application.get_env(:proca, Proca)[:require_verified_email]
   end
 end

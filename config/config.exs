@@ -26,7 +26,8 @@ config :proca, ProcaWeb.Resolvers.Captcha,
 
 config :proca, Proca,
   org_name: "test",
-  stats_sync_interval: 0  # XXX move to Proca.Server.Stats
+  stats_sync_interval: 0,  # XXX move to Proca.Server.Stats
+  require_verified_email: false
 
 # FPR seed only for development
 config :proca, Proca.Supporter,
@@ -34,6 +35,7 @@ config :proca, Proca.Supporter,
 
 config :proca, Proca.Server.Plumbing,
   url: "amqp://proca:proca@rabbitmq.docker/proca"
+
 
 config :proca, Proca.Server.Jwks,
   url: "https://account.fixthestatusquo.org/.well-known/jwks.json"
