@@ -47,20 +47,25 @@ defmodule ProcaWeb.Plugs.JwtAuthPlug do
   end
 
   def check_email_verified(jwt) do 
-    if need_verified_email? do
-      case jwt do 
-        %JOSE.JWT{
-          fields: %{
-            "session" => %{
-              "identity" => %{
-                "verifiable_addresses" => %{
-                  "verified" => verified? 
-                }
-              }
+    if need_verified_email?() do
+      %JOSE.JWT{
+        fields: %{
+          "session" => %{
+            "identity" => %{
+              "traits" => %{"email" => email},
+              "verifiable_addresses" => emails
             }
           }
-        } -> verified?
-        _ -> :unverified
+        }
+      } = jwt
+
+      current = Enum.find(emails, 
+        fn %{"value" => v} -> v == email end) 
+
+      if current["verified"] do 
+        :ok 
+      else 
+        :unverified
       end
     else
       :ok
