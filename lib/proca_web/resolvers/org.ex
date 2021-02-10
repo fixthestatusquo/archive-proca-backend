@@ -180,7 +180,7 @@ defmodule ProcaWeb.Resolvers.Org do
     with ch = %{valid?: true} <- PublicKey.import_public_for(org, public, name),
          {:ok, key} <- Repo.insert(ch)
       do
-      {:ok, key}
+      {:ok, format_key(key)}
       else
         ch = %{valid?: false} -> {:error, Helper.format_errors(ch)}
         {:error, ch} -> {:error, Helper.format_errors(ch)}
