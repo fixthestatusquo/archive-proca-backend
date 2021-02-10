@@ -45,7 +45,7 @@ The *extra supporters* from all widgets/action pages of a campaign are added to 
 To do this:
 1. Know your org name (acronym), user email and secret access token
 1. Have a widget/action page participating in the campaign.
-2. Know the name of the action page (or it's numerical ID)
+2. Know the name of the action page eg. ourplanet.org/oceans (or it's numerical ID, eg. 123)
 3. Install command line too: proca-cli by running `sudo npm install -g @proca/cli` or for local user `npm install @proca/cli`. Former is recommended.
 4. To update the *extra supporters* of an action page with ID 123 to 10000 run:
 ```
