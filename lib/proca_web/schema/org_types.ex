@@ -29,6 +29,9 @@ defmodule ProcaWeb.Schema.OrgTypes do
     @desc "Organisation title (human readable name)"
     field :title, non_null(:string)
 
+    @desc "config"
+    field :config, non_null(:json)
+
     @desc "Personal data settings for this org"
     field :personal_data, non_null(:personal_data) do
       resolve(&Resolvers.Org.org_personal_data/3)
@@ -106,6 +109,9 @@ defmodule ProcaWeb.Schema.OrgTypes do
 
     @desc "Email opt in template name"
     field :email_opt_in_template, :string
+
+    @desc "Config"
+    field :config, :json
   end
 
 

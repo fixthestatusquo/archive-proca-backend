@@ -47,7 +47,7 @@ defmodule Proca.Org do
   @doc false
   def changeset(org, attrs) do
     org
-    |> cast(attrs, [:name, :title, :contact_schema, :email_opt_in, :email_opt_in_template])
+    |> cast(attrs, [:name, :title, :contact_schema, :email_opt_in, :email_opt_in_template, :config])
     |> validate_required([:name, :title])
     |> validate_format(:name, ~r/^[[:alnum:]_-]+$/)
     |> unique_constraint(:name)

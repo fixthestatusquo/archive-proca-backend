@@ -116,7 +116,7 @@ defmodule ProcaWeb.Resolvers.Org do
     case Org.changeset(org, attrs) |> Repo.update()
       do
       {:error, ch} -> {:error, Helper.format_errors(ch)}
-      {:ok, org}
+      {:ok, org} -> {:ok, org}
     end
   end
 
