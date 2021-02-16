@@ -89,10 +89,11 @@ defmodule Proca.Contact.EciData do
         ch
 
       address ->
+        residence_country = get_change(address, :country)
         address =
           address
           |> validate_required(required_address_fields)
-          |> validate_format(:postcode, EciDataRules.postcode_format(country))
+          |> validate_format(:postcode, EciDataRules.postcode_format(residence_country))
 
         put_embed(ch, :address, address)
     end

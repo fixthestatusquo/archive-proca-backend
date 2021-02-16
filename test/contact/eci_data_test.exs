@@ -39,6 +39,20 @@ defmodule EciDataTest do
           address: address
         }
         |> Map.merge(names)
+      fr_in_be:
+        %{
+          birth_date: ~D[1900-01-02],
+          nationality: %{
+            country: "FR"
+          },
+          address: %{
+            country: "BE",
+            postcode: "1234",
+            locality: "Brussels",
+            street: "l'Amour Fries 11"
+          }
+        }
+        |> Map.merge(names)
     }
   end
 
@@ -161,5 +175,13 @@ defmodule EciDataTest do
 
     record = apply_changes(c)
     assert record.nationality.country == "GR"
+  end
+
+  test "French living in Belgium passes with 4-digit postcode", %{fr_in_be: fr_in_be} do
+    c = EciData.from_input(fr_in_be)
+    assert c.valid?
+    record = apply_changes(c)
+    assert record.nationality.country == "FR"
+    assert record.country = "BE"
   end
 end
