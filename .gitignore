@@ -43,3 +43,7 @@ doc
 log
 
 TAGS
+.dir-locals.el
+.env 
+.proca-cli
+
