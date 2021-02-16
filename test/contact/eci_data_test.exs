@@ -17,7 +17,7 @@ defmodule EciDataTest do
       street: "Exarcheia",
       street_number: "161",
       locality: "Athens",
-      country: "Greece",
+      country: "GR",
       postcode: "12345"
     }
 
@@ -38,7 +38,7 @@ defmodule EciDataTest do
           },
           address: address
         }
-        |> Map.merge(names)
+        |> Map.merge(names),
       fr_in_be:
         %{
           birth_date: ~D[1900-01-02],
@@ -182,6 +182,6 @@ defmodule EciDataTest do
     assert c.valid?
     record = apply_changes(c)
     assert record.nationality.country == "FR"
-    assert record.country = "BE"
+    assert record.country == "BE"
   end
 end
