@@ -5,7 +5,7 @@ defmodule ProcaWeb.Resolvers.ReportError do
     state: :resolved,
     errors: [_|_]
     } = resolution, _)  do 
-      if enabled? do
+      if enabled?() do
         try do 
           info = %{
             path: Enum.map(resolution.path, &Map.get(&1, :name)),
@@ -17,24 +17,25 @@ defmodule ProcaWeb.Resolvers.ReportError do
             name: get_in(resolution.arguments, [:name]),
             id: get_in(resolution.arguments, [:id])
           }
-          event = "error." <> (info.path |> Enum.join("."))
+          event = "User error " <> (info.path |> Enum.join(".")) <> " " <> (Enum.map(info.errors, &Map.get(&1, :message)) |> Enum.join(", "))
 
           Sentry.capture_message(event, extra: info)
         rescue 
           e in RuntimeError -> 
-            Sentry.capture_message("error.error", extra: %{exception: Map.get(e, :message, "(no message)")})
+            Sentry.capture_message("Other user error", extra: %{exception: Map.get(e, :message, "(no message)")})
         end
       end
     resolution
+  end
+
+  def call(reso, _) do 
+    reso 
   end
 
   def enabled? do
     not is_nil Sentry.Config.dsn
   end
 
-  def call(reso, _) do 
-    reso 
-  end
 
   def scrub_params(conn) do
     # Makes use of the default body_scrubber to avoid sending password
