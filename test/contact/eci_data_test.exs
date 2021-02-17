@@ -10,7 +10,7 @@ defmodule EciDataTest do
   setup do
     names = %{
       first_name: "Alicia",
-      last_name: "Witch"
+      last_name: "Witch Switch  "
     }
 
     address = %{
