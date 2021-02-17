@@ -20,8 +20,8 @@ config :proca, ProcaWeb.Endpoint,
   router: if System.get_env("ENABLE_ECI"), do: ProcaWeb.EciRouter, else: ProcaWeb.Router
 
 # Willfully leaked Hcaptcha secret (used only for development)
-config :proca, ProcaWeb.Resolvers.Captcha,
-  hcaptcha: "0x8565EF658CA7fdE55203a4725Dd341b5147dEcf2"
+# config :proca, ProcaWeb.Resolvers.Captcha,
+#  hcaptcha: "0x8565EF658CA7fdE55203a4725Dd341b5147dEcf2"
 
 
 config :proca, Proca,
