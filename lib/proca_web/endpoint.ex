@@ -1,7 +1,7 @@
 defmodule ProcaWeb.Endpoint do
+  use Sentry.PlugCapture
   use Phoenix.Endpoint, otp_app: :proca
   use Absinthe.Phoenix.Endpoint
-  use Sentry.Phoenix.Endpoint
 
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
@@ -44,6 +44,7 @@ defmodule ProcaWeb.Endpoint do
     pass: ["*/*"],
     json_decoder: Phoenix.json_library()
 
+  plug Sentry.PlugContext, body_scrubber: &ProcaWeb.Resolvers.ReportError.scrub_params/1
   plug Plug.MethodOverride
   plug Plug.Head
   plug Plug.Session, @session_options

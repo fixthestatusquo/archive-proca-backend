@@ -6,6 +6,7 @@ defmodule ProcaWeb.Schema.ActionTypes do
   use Absinthe.Schema.Notation
   alias ProcaWeb.Resolvers
   alias ProcaWeb.Resolvers.Authorized
+  alias ProcaWeb.Resolvers.ReportError
 
   object :action_queries do
     field :export_actions, non_null(list_of(:action)) do
@@ -50,6 +51,8 @@ defmodule ProcaWeb.Schema.ActionTypes do
       arg(:tracking, :tracking_input)
 
       resolve(&Resolvers.Action.add_action/3)
+
+      if ReportError.enabled?, do: middleware ReportError
     end
 
     @desc "Adds an action with contact data"
@@ -73,6 +76,8 @@ defmodule ProcaWeb.Schema.ActionTypes do
       arg(:contact_ref, :id)
 
       resolve(&Resolvers.Action.add_action_contact/3)
+      
+      if ReportError.enabled?, do: middleware ReportError
     end
 
     @desc "Link actions with refs to contact with contact reference"
