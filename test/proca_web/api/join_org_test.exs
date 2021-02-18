@@ -81,6 +81,39 @@ defmodule ProcaWeb.Api.JoinOrg do
       }]}
 
     end
+
+    test "Red bot can join yellow org and update page", %{
+      conn: conn, red_bot: %{user: red_user}, yellow_ap: yellow_ap
+        } do 
+      hq = Repo.get_by Org, name: "hq"
+      adst = Staffer.build_for_user(red_user, hq.id, Staffer.Role.permissions(:admin))
+      |> Repo.insert!
+
+      query = """
+        mutation JoinAndUpdate {
+          joinOrg(name: "yellow") {
+            status
+          },
+          updateActionPage(id: #{yellow_ap.id}) {
+            input: {
+              locale: "fr"
+            }
+          } { 
+            locale
+          }
+        }
+      """
+      res =
+        conn
+        |> auth_api_post(query, red_user.email, red_user.email)
+        |> json_response(200)
+
+      assert res = %{errors: [], data: %{
+        "joinOrg" => %{"status"=>"SUCCESS"}, 
+        "updateActionPage" => %{"locale" => "fr"}
+        }}
+    end
+
   end
 
 end 
