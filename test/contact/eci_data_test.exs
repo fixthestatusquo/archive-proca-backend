@@ -95,7 +95,6 @@ defmodule EciDataTest do
     c = EciData.from_input(no_dn)
 
     assert not c.valid?
-
     assert [%{message: "documentNumber: can't be blank", path: ["nationality", "documentNumber"]}] =
              format_errors(c)
 
@@ -135,6 +134,14 @@ defmodule EciDataTest do
 
     assert [%{message: "documentType: is invalid", path: ["nationality", "documentType"]}] =
              format_errors(c)
+
+    dn_spaces = %{d | nationality: %{n | document_number: "R 1234567" } }
+
+    assert not c.valid?
+
+    c = EciData.from_input(no_dn)
+
+    assert not c.valid?
   end
 
   test "Greek with address", %{gr: d} do
@@ -167,6 +174,17 @@ defmodule EciDataTest do
     assert [%{message: "postcode: has invalid format", path: ["address", "postcode"]}] =
              format_errors(c)
   end
+
+  test "Greek with spaces/hyphens in postcode", %{gr: gr} do
+    d = %{gr | address: %{gr.address | postcode: "123-45"}}
+    c = EciData.from_input(d)
+    assert c.valid?
+
+    d = %{gr | address: %{gr.address | postcode: "123 45"}}
+    c = EciData.from_input(d)
+    assert c.valid?
+  end
+
 
   test "Greek with lowercase country name is upcased", %{gr: gr} do
     d = %{gr | nationality: %{gr.nationality | country: "gr"}}
