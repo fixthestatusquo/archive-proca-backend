@@ -43,7 +43,8 @@ defmodule ProcaWeb.Resolvers.ReportError do
     # our sensitive "my_secret_field" and "other_sensitive_data" fields,
     # we simply drop those keys.
     Sentry.PlugContext.default_body_scrubber(conn)
-    |> Map.drop(["query", "variables"])
+    |> Map.drop(["query"])
+    |> Map.update("variables", %{}, &censor_bars/1)
   end
 
   def scrub_headers(conn) do
@@ -54,4 +55,20 @@ defmodule ProcaWeb.Resolvers.ReportError do
     Enum.into(conn.req_headers, %{})
     |> Map.drop(["X-Forwarded-For", "X-Real-Ip"])
   end
+
+  def censor_bars(a) when is_map(a) do 
+    for {k, v} <- a, into: %{}, do: {k, censor_bars(v)}
+  end
+
+  def censor_bars(a) when is_list(a) do
+    for e <- a, do: censor_bars(e)
+  end 
+
+  def censor_bars(a) when is_bitstring(a) do 
+    a 
+    |> String.replace(~r/[0-9]/, "0")
+    |> String.replace(~r/\p{L}/u, "X")
+  end
+
+  def censor_bars(a), do: a
 end
