@@ -44,9 +44,12 @@ defmodule Proca.Contact.Input do
     |> validate_format(field, ~r/^[\p{L}']([ \p{L},'-]*[\p{L}.])?$/u)
   end
 
+
+
+
   def validate_address_line(chst, field) do
     chst
-    |> validate_format(field, ~r/^[ \p{L}0-9'",.-]*$/u)
+    |> validate_format(field, ~r/^[ \p{L}0-9`“"‘’',.-]*$/u)
   end
 
   def validate_postcode(chst) do
