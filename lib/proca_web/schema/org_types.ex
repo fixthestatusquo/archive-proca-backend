@@ -147,6 +147,8 @@ defmodule ProcaWeb.Schema.OrgTypes do
     field :join_org, type: non_null(:join_org_result) do
       middleware Authorized
       arg :name, non_null(:string)
+
+      resolve(&Resolvers.Org.join_org/3)
     end
 
     field :generate_key, type: non_null(:key_with_private) do

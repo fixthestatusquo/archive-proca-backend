@@ -84,6 +84,10 @@ defmodule Proca.Org do
     Proca.Repo.one(from o in Proca.Org, where: o.id == ^id, preload: ^preload)
   end
 
+  def instance_org_name do
+    Application.get_env(:proca, Proca)[:org_name]
+  end
+
   def list(preloads \\ []) do
     Proca.Repo.all(from o in Proca.Org, preload: ^preloads)
   end
