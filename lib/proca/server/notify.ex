@@ -41,12 +41,12 @@ defmodule Proca.Server.Notify do
     Proca.Server.Processing.process_async(action)
   end
 
-  defp increment_counter(%Action{campaign_id: cid, action_type: atype}, nil) do
-    Proca.Server.Stats.increment(cid, atype, nil, false)
+  defp increment_counter(%Action{campaign_id: cid, action_page: %{org_id: org_id}, action_type: atype}, nil) do
+    Proca.Server.Stats.increment(cid, org_id, atype, nil, false)
   end
 
-  defp increment_counter(%Action{campaign_id: cid, action_type: atype}, %Supporter{area: area}) do
-    Proca.Server.Stats.increment(cid, atype, area, true)
+  defp increment_counter(%Action{campaign_id: cid, action_page: %{org_id: org_id}, action_type: atype}, %Supporter{area: area}) do
+    Proca.Server.Stats.increment(cid, org_id, atype, area, true)
   end
 
 

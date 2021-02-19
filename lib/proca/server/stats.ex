@@ -15,11 +15,13 @@ defmodule Proca.Server.Stats do
   query_runs: boolean - a flag saying calculation is running now and we shouldn't run new calculation
   campaign:
   campaign_id ->  (map)
-  {deduped supporters, [action_type: count], %{area: count}}
+  {deduped supporters, %{action_type: count}, %{area: count}, %{org_id: count}}
   """
+  defstruct supporters: 0, action: %{}, area: %{}, org: %{}
 
   use GenServer
-  alias Proca.{Action, Supporter, ActionPage}
+  alias Proca.Server.Stats
+  alias Proca.{Action, Supporter, ActionPage, Contact}
   alias Proca.Repo
   import Ecto.Query
 
@@ -67,25 +69,48 @@ defmodule Proca.Server.Stats do
     {:noreply, %{state | campaign: campaign, query_runs: false}}
   end
 
-  @impl true
-  def handle_cast(
-        {:increment, campaign_id, action_type, area, new_supporter},
+  @impl true 
+  def handle_cast(    # XXXX org_id
+        {:increment, campaign_id, org_id, action_type, area, new_supporter},
         state = %{campaign: campaign}
       ) do
 
     sup_incr = if(new_supporter, do: 1, else: 0)
+    incr = &(&1 + 1)
+    incr_for_new = &(&1 + sup_incr)
 
-    campaign = Map.update(campaign, campaign_id, {0, [], %{}}, 
-    fn {sup_ct, types_ct, area_sup} -> 
-      {action_type, at_ct} = List.keyfind(types_ct, action_type, 0, {action_type, 0})
-      areas = Map.update(area_sup, area, sup_incr, fn c -> c + sup_incr end)
+    campaign = Map.update(campaign, campaign_id, 
+    # initial state if this campaign stats do not exist at all
+    %Stats{
+      supporters: sup_incr,
+      action: %{ action_type => 1},
+      area: if(not is_nil(area), do: %{ area => sup_incr }, else: %{}),
+      org: %{ org_id => sup_incr }
+      },
+      fn %Stats{supporters: sup_ct, 
+      action: types_ct, 
+      area: area_sup,
+      org: org_sup
+      } -> 
 
-      {
-        sup_ct + sup_incr,
-        List.keystore(types_ct, action_type, 0, {action_type, at_ct + 1}),
-        areas
-      }
-    end)
+        action2 = Map.update(types_ct, action_type, 1, incr)
+
+        area2 = if not is_nil(area) do 
+          Map.update(area_sup, area, 1, incr_for_new)
+        else
+          area_sup
+        end
+
+        org2 = Map.update(org_sup, org_id, sup_incr, incr_for_new)
+        sup2 = incr_for_new.(sup_ct)
+
+        %Stats{
+          supporters: sup2,
+          action: action2,
+          area: area2, 
+          org: org2
+        }
+      end)
 
 
     {:noreply, %{state | campaign: campaign}}
@@ -97,7 +122,7 @@ defmodule Proca.Server.Stats do
   - Get stats for action types
   """
   def handle_call({:stats, c_id}, _f, stats = %{campaign: camp}) do
-    cst = Map.get(camp, c_id, {0, [], %{}})
+    cst = Map.get(camp, c_id, %Stats{})
 
     {:reply, cst, stats}
   end
@@ -113,73 +138,120 @@ defmodule Proca.Server.Stats do
     first_supporter_query = 
       from(s in Supporter, order_by: s.inserted_at)
       |> where([s], s.processing_status in [:accepted, :delivered])
-      |> distinct([s], s.fingerprint)
+      |> distinct([s], [s.fingerprint, s.campaign_id])
 
-    all_supporters_query = 
+#     all_supporters_query = 
+#       first_supporter_query
+#       |> subquery()
+#       |> group_by([s], [s.campaign_id])
+#       |> select([s], [s.campaign_id, count(s.fingerprint)]) # group by org?
+# 
+#     supporters =
+#       all_supporters_query
+#       |> Repo.all()
+#       |> Enum.reduce(%{}, fn [c_id, sup_ct], acc -> Map.put(acc, c_id, {sup_ct, [], %{}}) end)
+# 
+    org_supporters_query = 
       first_supporter_query
       |> subquery()
-      |> group_by([s], [s.campaign_id])
-      |> select([s], [s.campaign_id, count(s.fingerprint)])
+      |> join(:inner, [s], p in Contact, on: p.supporter_id == s.id)
+      |> group_by([s, p], [s.campaign_id, p.org_id])
+      |> select([s, p], {s.campaign_id, p.org_id, count(s.fingerprint)})
 
-    supporters =
-      all_supporters_query
+    org_supporters = 
+      org_supporters_query
       |> Repo.all()
-      |> Enum.reduce(%{}, fn [c_id, sup_ct], acc -> Map.put(acc, c_id, {sup_ct, [], %{}}) end)
 
-    area_supporters_query = first_supporter_query
+    # Aggregate per-org and total supporters 
+    {result_all, result_orgs} =
+    for {campaign_id, org_id, count} <- org_supporters, reduce: {%{}, %{}} do 
+      # go through rows and aggregate on two levels
+      {all_sup, org_sup} -> 
+        {
+          # per campaign_id
+          Map.update(all_sup, campaign_id, count, &(&1 + count)),
+          # nested map campaign_id -> org_id
+          Map.update(org_sup, campaign_id, %{org_id => count}, &Map.put(&1, org_id, count))
+        }
+    end
+
+    # Add extra suppoters - to per org and to total
+    extra = 
+      from(ap in ActionPage,
+        group_by: [ap.campaign_id, ap.org_id],
+        where: ap.extra_supporters != 0,
+        select: {ap.campaign_id, ap.org_id, sum(ap.extra_supporters)}
+      )
+      |> Repo.all()
+
+
+    # warning : if org has only exras, they are not yet in the map
+    {result_all, result_orgs} = 
+    for {campaign_id, org_id, extra} <- extra, reduce: {result_all, result_orgs} do 
+      {all, org} ->
+      {
+        all |> Map.update(campaign_id, extra, fn x -> x + extra end),
+        org |> Map.update(campaign_id, %{org_id => extra}, &Map.update(&1, org_id, extra, fn x -> x + extra end))
+      }
+    end
+
+    # count supporters per area (extra supporters do not apply here); we might add default area to 
+    # action page and then we could add them here.. - would need a campaign,area -> extra aggregate
+    area_supporters_query = 
+      first_supporter_query
       |> where([s], not is_nil(s.area))
       |> subquery()
       |> group_by([s], [s.campaign_id, s.area])
-      |> select([s], [s.campaign_id, s.area, count(s.fingerprint)])
+      |> select([s], {s.campaign_id, s.area, count(s.fingerprint)})
 
     area_supporters =
       area_supporters_query
       |> Repo.all()
-      |> Enum.reduce(supporters, fn [c_id, area, ar_sup], acc -> 
-        Map.update(
-          acc, 
-          c_id, 
-          {0, [], %{ area => ar_sup }},
-          fn {s, a, area_map} -> {s, a, Map.put(area_map, area, ar_sup)} end) 
-      end)
 
-    extra_supporters =
-      from(ap in ActionPage,
-        group_by: ap.campaign_id,
-        where: ap.extra_supporters != 0,
-        select: [ap.campaign_id, sum(ap.extra_supporters)]
-      )
-      |> Repo.all()
-      |> Enum.map(fn [c_id, ex_ct] -> {c_id, ex_ct} end)
-      |> Map.new
+    result_area = 
+      for {campaign_id, area, count} <- area_supporters, reduce: %{} do 
+        area_sup -> 
+          Map.update(area_sup, campaign_id, %{area => count}, &Map.put(&1, area, count))
+      end
 
-    # merge supporters and extra_supporters
 
     action_counts =
       from(a in Action,
         where: a.processing_status in [:accepted, :delivered],
         group_by: [a.campaign_id, a.action_type],
-        select: [a.campaign_id, a.action_type, count(a.id)]
+        select: {a.campaign_id, a.action_type, count(a.id)}
       )
       |> Repo.all()
-      |> Enum.reduce(%{}, &add_action_type_counts/2)
 
-    area_supporters
-    |> Enum.reduce(%{}, fn {campaign_id, {supporters, [], supporters_by_area}}, acc -> 
-      supporters_plus_extras = supporters + Map.get(extra_supporters, campaign_id, 0)
-      acc |> Map.put(campaign_id, {
-        supporters_plus_extras,
-        action_counts |> Map.get(campaign_id, []),
-        supporters_by_area
-      })
-    end)
+    result_action = 
+      for {campaign_id, action_type, count} <- action_counts, reduce: %{} do 
+        acc -> 
+            Map.update(acc, campaign_id, %{action_type => count}, &Map.put(&1, action_type, count))
+      end
+
+    result = 
+      for {campaign_id, total_supporters} <- result_all, into: %{} do 
+        {campaign_id, %Stats{supporters: total_supporters  }}
+      end
+
+    result =
+      for {campaign_id, org_stat} <- result_orgs, reduce: result do 
+        acc -> Map.put(acc, campaign_id,  %Stats{acc[campaign_id] | org: org_stat})
+      end
+
+    result =
+      for {campaign_id, area_stat} <- result_area, reduce: result do 
+        acc -> Map.put(acc, campaign_id,  %Stats{acc[campaign_id] | area: area_stat})
+      end
+
+    result =
+      for {campaign_id, action_stat} <- result_action, reduce: result do 
+        acc -> Map.put(acc, campaign_id,  %Stats{acc[campaign_id] | action: action_stat})
+      end
+
+    result
   end
 
-  defp add_action_type_counts([c_id, at, ct], acc) do
-    Map.update(acc, c_id, [{at, ct}], fn lst -> 
-      List.keystore(lst, at, 0, {at, ct})
-    end)
-  end
 
   # Client side
   def start_link(args) do
@@ -190,11 +262,12 @@ defmodule Proca.Server.Stats do
     GenServer.call(__MODULE__, {:stats, campaign_id})
   end
 
-  def increment(campaign_id, action_type, new_supporter) do
-    GenServer.cast(__MODULE__, {:increment, campaign_id, action_type, nil, new_supporter})
+  def increment(campaign_id, org_id, action_type, new_supporter) do
+    GenServer.cast(__MODULE__, {:increment, campaign_id, org_id, action_type, nil, new_supporter})
   end
 
-  def increment(campaign_id, action_type, area, new_supporter) do
-    GenServer.cast(__MODULE__, {:increment, campaign_id, action_type, area, new_supporter})
+  def increment(campaign_id, org_id, action_type, area, new_supporter) do
+    GenServer.cast(__MODULE__, {:increment, campaign_id, org_id, action_type, area, new_supporter})
   end
+
 end
