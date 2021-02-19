@@ -136,9 +136,12 @@ defmodule Proca.Server.Stats do
     # is counted (within scope of campaign)
 
     first_supporter_query = 
-      from(s in Supporter, order_by: s.inserted_at)
-      |> where([s], s.processing_status in [:accepted, :delivered])
-      |> distinct([s], [s.fingerprint, s.campaign_id])
+      from(a in Action, join: s in Supporter,  on: a.supporter_id == s.id, order_by: a.inserted_at)
+      |> where([a, s], s.processing_status in [:accepted, :delivered] and a.processing_status in [:accepted, :delivered])
+      |> distinct([a, s], [a.campaign_id, s.fingerprint])
+
+    first_supporter_query
+    |> Repo.all() 
 
 #     all_supporters_query = 
 #       first_supporter_query
@@ -154,9 +157,10 @@ defmodule Proca.Server.Stats do
     org_supporters_query = 
       first_supporter_query
       |> subquery()
-      |> join(:inner, [s], p in Contact, on: p.supporter_id == s.id)
-      |> group_by([s, p], [s.campaign_id, p.org_id])
-      |> select([s, p], {s.campaign_id, p.org_id, count(s.fingerprint)})
+      |> join(:inner, [a], s in Supporter, on: s.id == a.supporter_id)
+      |> join(:inner, [a, s], p in Contact, on: p.supporter_id == s.id)
+      |> group_by([a, s, p], [a.campaign_id, p.org_id])
+      |> select([a, s, p], {a.campaign_id, p.org_id, count(s.fingerprint)})
 
     org_supporters = 
       org_supporters_query
@@ -199,10 +203,11 @@ defmodule Proca.Server.Stats do
     # action page and then we could add them here.. - would need a campaign,area -> extra aggregate
     area_supporters_query = 
       first_supporter_query
-      |> where([s], not is_nil(s.area))
+      |> where([a, s], not is_nil(s.area))
       |> subquery()
-      |> group_by([s], [s.campaign_id, s.area])
-      |> select([s], {s.campaign_id, s.area, count(s.fingerprint)})
+      |> join(:inner, [a], s in Supporter, on: s.id == a.supporter_id)
+      |> group_by([a, s], [a.campaign_id, s.area])
+      |> select([a, s], {a.campaign_id, s.area, count(s.fingerprint)})
 
     area_supporters =
       area_supporters_query
@@ -243,10 +248,11 @@ defmodule Proca.Server.Stats do
       for {campaign_id, area_stat} <- result_area, reduce: result do 
         acc -> Map.put(acc, campaign_id,  %Stats{acc[campaign_id] | area: area_stat})
       end
-
+  
     result =
       for {campaign_id, action_stat} <- result_action, reduce: result do 
-        acc -> Map.put(acc, campaign_id,  %Stats{acc[campaign_id] | action: action_stat})
+        acc -> 
+        Map.put(acc, campaign_id,  %Stats{acc[campaign_id] | action: action_stat})
       end
 
     result

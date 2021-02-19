@@ -78,7 +78,7 @@ defmodule Proca.MixProject do
       {:logger_file_backend, "~> 0.0.11"}, # TODO: evaluate if we need this
       {:mix_systemd, "~> 0.7.3"},
       {:floki, ">= 0.0.0", only: :test},
-      {:ex_machina, "~> 2.4", only: :test},
+      {:ex_machina, "~> 2.6", only: :test},
       {:credo, "~> 1.1", only: [:dev, :test], runtime: false},
       {:dogma, "~> 0.1", only: [:dev]},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
