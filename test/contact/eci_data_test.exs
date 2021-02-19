@@ -10,7 +10,7 @@ defmodule EciDataTest do
   setup do
     names = %{
       first_name: "Alicia",
-      last_name: "Witch Switch  "
+      last_name: "Witch Switch"
     }
 
     address = %{
@@ -185,6 +185,11 @@ defmodule EciDataTest do
     assert c.valid?
   end
 
+  test "Greek with dot in last name", %{gr: gr} do 
+    d = %{gr | last_name: "Mr. Something"}
+    c = EciData.from_input(d)
+    assert c.valid?
+  end 
 
   test "Greek with lowercase country name is upcased", %{gr: gr} do
     d = %{gr | nationality: %{gr.nationality | country: "gr"}}
