@@ -78,6 +78,17 @@ defmodule ProcaWeb.Resolvers.Campaign do
     {:ok, with_names}
   end
 
+  def org_stats_others(par, %{org_name: org_name}, ctx) do 
+    {:ok, by_names} = org_stats(par, %{}, ctx)
+
+    {:ok, 
+      by_names 
+      |> Enum.filter(fn %{org: %{name: name}} -> name != org_name end)
+      |> Enum.map(fn %{count: count} -> count end)
+      |> Enum.sum()
+    }
+  end 
+
   @doc "XXX deprecated in favor of upsert/3"
   def declare_upsert(p, attrs, res) do
     upsert(p, %{input: attrs}, res)

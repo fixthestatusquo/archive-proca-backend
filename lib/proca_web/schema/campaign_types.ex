@@ -271,6 +271,11 @@ defmodule ProcaWeb.Schema.CampaignTypes do
       resolve(&Resolvers.Campaign.org_stats/3)
     end
 
+    field :supporter_count_by_others, non_null(:integer) do 
+      arg(:org_name, non_null(:string))
+      resolve(&Resolvers.Campaign.org_stats_others/3)
+    end
+
     @desc "Action counts for selected action types"
     field :action_count, non_null(list_of(non_null(:action_type_count)))
   end
