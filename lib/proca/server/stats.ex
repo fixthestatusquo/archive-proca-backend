@@ -191,11 +191,11 @@ defmodule Proca.Server.Stats do
 
     # warning : if org has only exras, they are not yet in the map
     {result_all, result_orgs} = 
-    for {campaign_id, org_id, extra} <- extra, reduce: {result_all, result_orgs} do 
+    for {campaign_id, org_id, count} <- extra, reduce: {result_all, result_orgs} do 
       {all, org} ->
       {
-        all |> Map.update(campaign_id, extra, fn x -> x + extra end),
-        org |> Map.update(campaign_id, %{org_id => extra}, &Map.update(&1, org_id, extra, fn x -> x + extra end))
+        all |> Map.update(campaign_id, count, fn x -> x + count end),
+        org |> Map.update(campaign_id, %{org_id => count}, &Map.update(&1, org_id, count, fn x -> x + count end))
       }
     end
 
