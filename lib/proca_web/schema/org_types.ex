@@ -236,6 +236,11 @@ defmodule ProcaWeb.Schema.OrgTypes do
     field :expired_at, :date_time
   end
 
+  object :key_ids do 
+    field :id, non_null(:integer)
+    field :public, non_null(:string)
+  end
+
   input_object :add_key_input do
     field :name, non_null(:string)
     field :public, non_null(:string)
@@ -253,6 +258,7 @@ defmodule ProcaWeb.Schema.OrgTypes do
 
   object :join_org_result do
     field :status, non_null(:status)
+    field :org, non_null(:org)
   end
 
   object :activate_key_result do

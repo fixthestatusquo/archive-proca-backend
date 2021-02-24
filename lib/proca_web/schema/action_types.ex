@@ -198,8 +198,8 @@ defmodule ProcaWeb.Schema.ActionTypes do
     field :contact_ref, non_null(:string)
     field :payload, non_null(:string)
     field :nonce, :string
-    field :public_key, :key
-    field :sign_key, :key
+    field :public_key, :key_ids
+    field :sign_key, :key_ids
     #   field :optIn, non_null(:boolean) <- is in privacy already
   end
 
