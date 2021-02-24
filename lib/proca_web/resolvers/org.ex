@@ -234,16 +234,16 @@ defmodule ProcaWeb.Resolvers.Org do
           admin = %Staffer{perms: admin_perms}} <- {:admin, 
             Staffer.for_user_in_org(user, Org.instance_org_name)},
          true <- Staffer.Permission.can?(admin, :join_orgs),
-         {:org, %Org{id: org_id}} <- {:org, Org.get_by_name(org_name)}  do 
+         {:org, org = %Org{id: org_id}} <- {:org, Org.get_by_name(org_name)}  do 
 
     joining = 
-    case Staffer.for_user_in_org(user, org_name) do 
+    case Staffer.for_user_in_org(user, org_id) do 
       nil -> Staffer.build_for_user(user, org_id, admin_perms) |> Repo.insert()
       st = %Staffer{} -> change(st, perms: admin_perms) |> Repo.update()
     end
 
     case joining do 
-      {:ok, _} -> {:ok, %{status: :success}}
+      {:ok, _} -> {:ok, %{status: :success, org: org}}
       {:error, chg} -> {:error, Helper.format_errors(chg)}
     end 
 
