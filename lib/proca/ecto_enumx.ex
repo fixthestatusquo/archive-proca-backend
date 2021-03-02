@@ -4,3 +4,6 @@ defenum(ProcessingStatus, new: 0, confirming: 1, rejected: 2, accepted: 3, deliv
 defenum(ExternalService, ses: "ses", sqs: "sqs", mailjet: "mailjet", wordpress: "wordpress")
 
 defenum(ContactSchema, basic: 0, popular_initiative: 1, eci: 2)
+
+defenum(ConfirmOperation, join_campaign: 0, add_partner: 1)
+
