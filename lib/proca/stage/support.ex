@@ -162,4 +162,18 @@ defmodule Proca.Stage.Support do
     |> Map.put("schema", "proca:action:1")
     |> Map.put("stage", Atom.to_string(stage))
   end
+
+  def link(%Action{id: id, supporter: %{fingerprint: fpr}}, entity, op) do 
+    verb = case entity do 
+      :supporter -> "sup"
+      :action -> "act"
+    end <> case op do 
+      :accept -> "acc"
+      :reject -> "rej"
+    end
+
+    ref = Supporter.base_encode(fpr)
+
+    ProcaWeb.Router.Helpers.confirm_url(ProcaWeb.Endpoint, :confirm, id, ref, verb)
+  end
 end

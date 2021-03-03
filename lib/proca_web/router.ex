@@ -48,6 +48,12 @@ defmodule ProcaWeb.Router do
     live "/", DashController
   end
 
+  scope "/link" do 
+    pipe_through :api
+
+    get "/action/:action_id/:ref/:verb", ProcaWeb.ConfirmController, :confirm
+  end
+
   scope "/api" do
     pipe_through :api
 

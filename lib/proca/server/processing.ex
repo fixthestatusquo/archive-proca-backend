@@ -178,7 +178,17 @@ defmodule Proca.Server.Processing do
 
   def change_status(action, action_status, supporter_status) do
     sup = change(action.supporter, processing_status: supporter_status)
-    change(action, processing_status: action_status, supporter: sup)
+    act = change(action, processing_status: action_status)
+
+    if act.changes == %{} do 
+      sup
+    else 
+      if sup.changes == %{} do 
+        act
+      else
+        change(act, supporter: sup)
+      end
+    end
   end
 
   @doc """
@@ -204,7 +214,7 @@ defmodule Proca.Server.Processing do
     end
   end
 
-  def emit(action, entity, :confim) when not is_nil(action) do
+  def emit(action, entity, :confirm) when not is_nil(action) do
 
     routing = routing_for(action)
     exchange = exchange_for(action.action_page.org, entity, :confirm)
@@ -249,7 +259,9 @@ defmodule Proca.Server.Processing do
       {state_change, thing, stage} -> 
         Repo.transaction(fn ->
           case emit(action, thing, stage) do
-            :ok -> Repo.update!(state_change)
+            :ok -> 
+              IO.inspect(state_change, label: "STATE CHANGE")
+              Repo.update!(state_change)
             :error -> raise "Cannot emit"
           end
         end)

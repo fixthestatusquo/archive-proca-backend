@@ -91,6 +91,16 @@ defmodule Proca.Supporter do
     Base.url_decode64(encoded, padding: false)
   end
 
+  def decode_ref(changeset = %Ecto.Changeset{}, field) do 
+    case get_change(changeset, field) do 
+      nil -> changeset
+      base -> case base_decode(base) do 
+        {:ok, val} -> put_change(changeset, field, val)
+        :error -> add_error(changeset, field, "Cannot decode from Base64url")
+      end
+    end
+  end
+
   def transient_fields(supporter) do 
     Supporter.Privacy.transient_fields(supporter.action_page)
     |> Enum.map(fn f -> {f, nil} end)
