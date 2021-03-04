@@ -260,7 +260,6 @@ defmodule Proca.Server.Processing do
         Repo.transaction(fn ->
           case emit(action, thing, stage) do
             :ok -> 
-              IO.inspect(state_change, label: "STATE CHANGE")
               Repo.update!(state_change)
             :error -> raise "Cannot emit"
           end
