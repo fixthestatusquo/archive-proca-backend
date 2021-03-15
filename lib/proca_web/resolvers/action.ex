@@ -22,14 +22,23 @@ defmodule ProcaWeb.Resolvers.Action do
     end
   end
 
-  defp add_tracking(action, %{tracking: tr}) do
-    case Source.get_or_create_by(tr) do
+  defp add_tracking_location(tr, nil), do: tr 
+  defp add_tracking_location(tr, referer) when is_bitstring(referer) do 
+    [location|_] = String.split(referer, "?")
+    Map.put(tr, :location, location)
+  end
+
+  defp add_tracking(action, %{tracking: tr}, referer) do
+    case tr 
+      |> add_tracking_location(referer)
+      |> Source.get_or_create_by() 
+    do
       {:ok, src} -> put_assoc(action, :source, src)
       _ -> action
     end
   end
 
-  defp add_tracking(action, %{}) do
+  defp add_tracking(action, %{}, _referer) do
     action
   end
 
@@ -73,7 +82,7 @@ defmodule ProcaWeb.Resolvers.Action do
   def link_references(_supporter, %{}) do
   end
 
-  def add_action_contact(_, params = %{action: action, contact: contact, privacy: priv}, resolution) do
+  def add_action_contact(_, params = %{action: action, contact: contact, privacy: priv}, resolution = %{context: context}) do
     case Multi.new()
          |> Multi.run(:action_page, fn _repo, _m ->
            get_action_page(params)
@@ -96,12 +105,12 @@ defmodule ProcaWeb.Resolvers.Action do
              action_page,
              struct!(Privacy, priv)
            )
-           |> add_tracking(params)
+           |> add_tracking(params, get_in(context, [:headers, "referer"]))
            |> repo.insert()
          end)
          |> Multi.run(:action, fn repo, %{supporter: supporter, action_page: action_page} ->
            Action.create_for_supporter(action, supporter, action_page)
-           |> add_tracking(params)
+           |> add_tracking(params, get_in(context, [:headers, "referer"]))
            |> put_change(:with_consent, true)
            |> repo.insert()
          end)
@@ -124,7 +133,7 @@ defmodule ProcaWeb.Resolvers.Action do
     end
   end
 
-  def add_action(_, params = %{contact_ref: _cref, action: action_attrs}, _) do
+  def add_action(_, params = %{contact_ref: _cref, action: action_attrs},  %{context: context}) do
     case Multi.new()
          |> Multi.run(:action_page, fn _repo, _m ->
            get_action_page(params)
@@ -134,7 +143,7 @@ defmodule ProcaWeb.Resolvers.Action do
          end)
          |> Multi.run(:action, fn repo, %{action_page: action_page, supporter: supporter} ->
            Action.create_for_supporter(action_attrs, supporter, action_page)
-           |> add_tracking(params)
+           |> add_tracking(params, get_in(context, [:headers, "referer"]))
            |> repo.insert()
          end)
          |> Repo.transaction() do
