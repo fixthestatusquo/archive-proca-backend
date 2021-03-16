@@ -99,4 +99,9 @@ defmodule ProcaWeb.Helper do
       _ -> {:error, "User cannot manage this action page"}
     end
   end
+
+  def has_error?(errors, field, msg) when is_atom(field) and is_bitstring(msg) do 
+    errors 
+    |> Enum.any?(fn {^field, {^msg, _}} -> true; _ -> false end)
+  end
 end

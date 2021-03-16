@@ -52,7 +52,9 @@ defmodule ProcaWeb.Router do
   scope "/link" do 
     pipe_through :api
 
-    get "/action/:action_id/:ref/:verb", ProcaWeb.ConfirmController, :confirm
+    get "/s/:action_id/:ref/:verb", ProcaWeb.ConfirmController, :supporter
+    get "/:code/:verb", ProcaWeb.ConfirmController, :confirm
+    #get "/a/:action_id/:ref/:verb/:code", ProcaWeb.ConfirmController, :confirm_code
   end
 
   scope "/api" do

@@ -1,27 +1,41 @@
 defmodule ProcaWeb.ConfirmController do 
+  @moduledoc """
+  Controller processing two kinds of confirm links:
+  1. supporter confirm (double opt in in most cases)
+  2. generic Confirm
+  """
+
   use ProcaWeb, :controller
   import Ecto.Changeset
   import Ecto.Query
   import Proca.Repo
-  alias Proca.{Supporter,Action}
+  alias Proca.{Supporter, Action, Confirm}
   alias Proca.Server.Processing
 
 
-  def confirm(conn, params) do
-    with {:ok, args} <- parse_params(params),
+  @doc """
+  Handle a supporter confirm link of form:
+  /link/s/123/REF_REF_REF/accept
+
+  This is a special case where we do not use Confirm model. Instead, we use the ref known to supporter. This way we do not have to create so many Confirm records when org is using double opt in.
+
+  This path optionally takes a ?redir query param to redirect after accepting/rejecting.
+  """
+  def supporter(conn, params) do
+    with {:ok, args} <- supporter_parse_params(params),
          {:ok, action} <- find_action(args),
-         :ok <- perform_confirm(action, args.verb)
+         :ok <- handle_supporter(action, args.verb)
     do
       conn
       |> redirect(to: Map.get(args, :redir, "/"))
       |> halt()
     else 
-      {:error, stat, msg} -> 
-        conn |> resp(stat, error_msg(msg)) |> halt()
+      {:error, status, msg} -> 
+        conn |> resp(status, error_msg(msg)) |> halt()
     end
   end
 
-  def parse_params(params) do 
+  defp supporter_parse_params(params) do 
     types = %{
       action_id: :integer,
       verb: :string,
@@ -30,7 +44,7 @@ defmodule ProcaWeb.ConfirmController do
     }
 
     args = cast({%{}, types}, params, Map.keys(types))
-    |> validate_inclusion(:verb, ["supacc", "suprej", "actacc", "actrej"])
+    |> validate_inclusion(:verb, ["accept", "reject"])
     |> Supporter.decode_ref(:ref)
     |> validate_required([:action_id, :verb, :ref])
 
@@ -42,13 +56,8 @@ defmodule ProcaWeb.ConfirmController do
   end
 
 
-  def find_action(%{action_id: action_id, ref: ref}) do 
-    action = from(a in Action, 
-      join: s in Supporter, on: s.id == a.supporter_id,
-      where: a.id == ^action_id and s.fingerprint == ^ref, 
-      preload: [supporter: s])
-    |> one()
-
+  defp find_action(%{action_id: action_id, ref: ref}) do 
+    action = Action.get_by_id_and_ref(action_id, ref)
     if is_nil(action) do 
       {:error, 404, "malformed link"}
     else 
@@ -56,55 +65,98 @@ defmodule ProcaWeb.ConfirmController do
     end
   end
 
-  def perform_confirm(action = %Action{supporter: sup}, "supacc") do 
-    case sup.processing_status do 
-      :new -> {:error, 400, "operation not allowed"}
-      :confirming -> 
-        Processing.process_async(
-          %{action | supporter: update!(change(sup, processing_status: :accepted))}
-        )
-      :rejected -> {:error, 400, "supporter data already rejected"}
-      :accepted -> :ok
-      :delivered -> :ok
+  defp handle_supporter(action = %Action{supporter: sup}, "accept") do 
+    case Supporter.confirm(sup) do 
+      {:ok, sup2} -> Processing.process_async(%{action | supporter: sup2})
+      {:noop, _} -> :ok
+      {:error, msg} -> {:error, 400, msg}
     end
   end
 
-  def perform_confirm(action = %Action{supporter: sup}, "suprej") do 
-    case sup.processing_status do 
-      :new -> {:error, 400, "operation not allowed"}
-      :confirming -> 
-        update!(change(sup, processing_status: :rejected))
-        :ok
-      :rejected -> :ok
-      :accepted -> {:error, 400, "supporter data already processed"}
-      :delivered -> {:error, 400, "supporter data already processed"}
+  defp handle_supporter(_action = %Action{supporter: sup}, "reject") do 
+    case Supporter.reject(sup) do 
+      {:ok, sup2} -> :ok
+      {:noop, _} -> :ok
+      {:error, msg} -> {:error, 400, msg}
     end
   end
 
-  def perform_confirm(action = %Action{}, "actacc") do 
-    case action.processing_status do 
-      :new -> {:error, 400, "operation not allowed"}
-      :confirming -> 
-        Processing.process_async(
-          update!(change(action, processing_status: :accepted))
-        )
-      :rejected -> {:error, 400, "action data already rejected"}
-      :accepted -> :ok
-      :delivered -> :ok
+  @doc """
+  Handles a generic accept/reject of a Confirm.
+
+  Link of form: /link/1234567/accept
+
+  Optionally with query params:
+  - email - if this Confirm was created for a recipient with email
+  - id - if this Confirm was created for particular object id (schema determined by Confirm operation)
+  - redir - query param to redirect after accepting/rejecting.
+  """
+  def confirm(conn, params) do 
+    with {:ok, args} <- confirm_parse_params(params),
+         confirm = %Confirm{} <- get_confirm(args),
+         :ok <- handle_confirm(confirm, args.verb) do
+      conn
+      |> redirect(to: Map.get(args, :redir, "/"))
+      |> halt()
+    else
+      {:error, status, msg} -> conn |> resp(status, error_msg(msg)) |> halt()
+      nil -> conn |> resp(400, error_msg("wrong code")) |> halt()
     end
   end
 
-  def perform_confirm(action = %Action{supporter: sup}, "actrej") do 
-    case sup.processing_status do 
-      :new -> {:error, 400, "operation not allowed"}
-      :confirming -> 
-        update!(change(action, processing_status: :rejected))
-        :ok
-      :rejected -> :ok
-      :accepted -> {:error, 400, "action data already processed"}
-      :delivered -> {:error, 400, "action data already processed"}
+  defp handle_confirm(confirm, "accept") do 
+    case Confirm.confirm(confirm) do 
+      :ok -> :ok
+      {:error, "expired"} -> {:error, 400, "expired"}
+      {:error, msg} -> {:error, 500, error_msg(msg)}
     end
   end
 
-  defp error_msg(msg), do: %{errors: [%{message: msg}]} |> Jason.encode!
+  defp handle_confirm(confirm, "reject") do 
+    case Confirm.reject(confirm) do
+      :ok -> :ok
+      {:error, msg} -> {:error, 500, error_msg(msg)}
+    end
+  end
+
+  defp confirm_parse_params(params) do 
+    types = %{
+      code: :string,
+      verb: :string,
+      email: :string,
+      id: :integer,
+      redir: :string
+    }
+
+    args = cast({%{}, types}, params, Map.keys(types))
+    |> validate_inclusion(:verb, ["accept", "reject"])
+    |> validate_format(:code, ~r/^[0-9]+$/)
+    |> validate_required([:code, :verb])
+
+    if args.valid? do 
+      {:ok, apply_changes(args)}
+    else 
+      {:error, 400, "malformed link"}
+    end
+  end
+
+  defp get_confirm(%{code: code, email: email}) do 
+    Confirm.by_email_code(email, code)
+  end
+
+  defp get_confirm(%{code: code, id: id}) do 
+    Confirm.by_object_code(id, code)
+  end
+
+  defp get_confirm(%{code: code}) do 
+    Confirm.by_open_code(code)
+  end
+
+  defp error_msg(msg) when is_bitstring(msg) do 
+    %{errors: [%{message: msg}]} |> Jason.encode!
+  end
+
+  defp error_msg(msg = %Ecto.Changeset{}) do 
+    ProcaWeb.Helper.format_errors(msg) |> Jason.encode!
+  end
 end 

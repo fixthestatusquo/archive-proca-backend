@@ -1,9 +1,12 @@
 defmodule Proca.Confirm do
   @moduledoc """
+  Confirm represents an action deferred in time.
+
   OPERATION
   SUBJECT_ID
   OBJECT_ID
   CODE
+
   # Asking to join a campaign:
   
           subject v   object v
@@ -12,14 +15,21 @@ defmodule Proca.Confirm do
     Staffers with proper permission? 
   - times: 1
   XXX should send email after
+
+  # Asking to add a partner
+  add_partner()
   
-  Confirm supporter data
-  confirm_supporter(action, supporter)  # or maybe supported can be confirmed by a ref ?
+  Confirm supporter data - is confirmed by REF
  
-  Confirm action data
-  confirm_supporter(action, action_page)  # XXX currently no idea how this would work within system; the custom queue will use authenticated API (no confirm code)
+  # Confirm action data - it's an open confirm
+  confirm_action(action, nil, code)
  
+
+  defenum(ConfirmOperation, confirm_action: 0, join_campaign: 1, add_partner: 2)
+
   CONFIRMS/REJECTS ARE SYNC
+
+  XXX Expire and remove old confirms!
   """
 
   use Ecto.Schema
@@ -27,7 +37,7 @@ defmodule Proca.Confirm do
   import Ecto.Query
   import Proca.Repo
   alias Proca.Confirm
-  alias Proca.{ActionPage,Campaign,Org}
+  alias Proca.{ActionPage,Campaign,Org,Action,Staffer}
 
   schema "confirms" do
     field :operation, ConfirmOperation
@@ -52,8 +62,32 @@ defmodule Proca.Confirm do
   def changeset(attrs), do: changeset(%Confirm{}, attrs)
 
   def add_code(ch) do 
-    code = Proca.Confirm.SimpleCode.generate()
-    change(ch, code: code)
+    code = Confirm.SimpleCode.generate()
+    change(ch, code: code) |> unique_constraint(:code)
+  end
+
+  @doc """
+  Try to insert the confirm with special handling of situation, when randomly generated code is duplicated.
+  In case of duplication, we will keep adding one random digit to the code, until we succeed
+  """
+  def create(ch = %Ecto.Changeset{data: %Confirm{}}) do 
+    case insert(ch) do 
+      {:ok, cnf} -> cnf
+
+      {:error, %{errors: [{:code,_} | _]}} -> 
+        code = get_change(ch, :code)
+        random_digit = :rand.uniform(10)
+        ch 
+        |> change(code: code <> Integer.to_string(random_digit))
+        |> create()
+
+      {:error, err} -> {:error, err} 
+    end
+  end
+
+  def create(attr) when is_map(attr) do 
+    changeset(attr) 
+    |> create()
   end
 
   def by_open_code(code) when is_bitstring(code) do
@@ -62,7 +96,7 @@ defmodule Proca.Confirm do
   end
 
   def by_object_code(object_id, code) when is_integer(object_id) and is_bitstring(code) do 
-    from(c in Confirm, where: c.code == ^code and is_nil(c.object_id), limit: 1)
+    from(c in Confirm, where: c.code == ^code and c.object_id == ^object_id, limit: 1)
     |> one()
   end
 
@@ -71,43 +105,25 @@ defmodule Proca.Confirm do
     |> one()
   end
 
-  def reject(confirm = %Confirm{}) do
-    confirm |> change(charges: 0) |> update!
-    :ok
+  def reject(confirm = %Confirm{}, staffer \\ nil) do
+    confirm 
+    |> change(charges: 0) 
+    |> update!
+    |> Confirm.Operation.run(:reject, staffer)
   end
 
-  def confirm(confirm = %Confirm{}) do 
+  def confirm(confirm = %Confirm{}, staffer \\ nil) do 
     if confirm.charges <= 0 do 
-      {:error, :expired}
+      {:error, "expired"}
     else
-      confirm |> change(charges: confirm.charges - 1) |> update!
-      run(confirm)
+      confirm 
+      |> change(charges: confirm.charges - 1) 
+      |> update!
+      |> Confirm.Operation.run(:confirm, staffer)
     end
   end
 
-  @doc """
-  # Inviting to a campaign (by email)
-  
-  add_partnern(action_page, nil, email) 
-  - confirms this use     --- -----^   
-  - times: 1
- 
-  # Inviting to a campaign (open)
-  clone_action_page(action_page, nil)
-  """
-  def create(:add_parther, %ActionPage{id: id, campaign: camp}, email) do
-    cnf = %{
-      operation: :add_parther,
-      subject_id: id,
-      email: email
-    } |> changeset() |> insert!
-    
-    cnf
-  end
 
-  def run(_) do 
-    :ok
-  end
 
   def notify_by_email(email, cnf) do 
     instance = Org.get_by_name(Org.instance_org_name, [:email_backend, :template_backend])

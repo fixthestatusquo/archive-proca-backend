@@ -5,5 +5,5 @@ defenum(ExternalService, ses: "ses", sqs: "sqs", mailjet: "mailjet", wordpress: 
 
 defenum(ContactSchema, basic: 0, popular_initiative: 1, eci: 2, it_ci: 3)
 
-defenum(ConfirmOperation, join_campaign: 0, add_partner: 1)
+defenum(ConfirmOperation, confirm_action: 0, join_campaign: 1, add_partner: 2)
 

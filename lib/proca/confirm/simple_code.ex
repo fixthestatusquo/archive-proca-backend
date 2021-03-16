@@ -1,3 +1,3 @@
 defmodule Proca.Confirm.SimpleCode do
-  use RandomPassword, decimal: 6
+  use RandomPassword, decimal: 8
 end
