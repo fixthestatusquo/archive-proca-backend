@@ -1,7 +1,9 @@
 defmodule Proca.Confirm.AddPartner do 
-  alias Proca.{Action, ActionPage, Confirm}
+  alias Proca.{Action, ActionPage, Confirm, Staffer}
   import Proca.Changeset 
   import Proca.Repo
+  import ProcaWeb.Helper, only: [has_error?: 3, cant_msg: 1, msg_ext: 2]
+  import Proca.Staffer.Permission, only: [can?: 2]
 
   @doc """
   # Inviting to a campaign (by email)
@@ -15,18 +17,11 @@ defmodule Proca.Confirm.AddPartner do
   """
   def create(%ActionPage{id: id, campaign: _camp}, email) when is_bitstring(email) do
     %{
-      operation: :add_parther,
+      operation: :add_partner, 
       subject_id: id,
       email: email
     } |> Confirm.create()
   end
-end
-
-defimpl Proca.Confirm.Operation, for: :add_partner do 
-  alias Proca.Confirm
-  alias Proca.{ActionPage,Org, Staffer}
-  import Proca.Repo
-  import ProcaWeb.Helper, only: [has_error?: 3]
 
   defp try_create_copy(org, page, new_name, tryno \\ 0) do 
     name = if tryno > 0, do: new_name <> "-#{tryno}", else: new_name
@@ -42,15 +37,23 @@ defimpl Proca.Confirm.Operation, for: :add_partner do
     end
   end
 
-  def run(%Confirm{operation: :add_partner, subject_id: ap_id}, :confirm, %Staffer{org: org}) do
-    page = get(ActionPage, ap_id)
-    if page do
+  def run(%Confirm{operation: :add_partner}, :confirm, nil) do 
+    {:error, "unauthorized"}
+  end
+
+  def run(%Confirm{operation: :add_partner, subject_id: ap_id}, :confirm, st) do
+    org = Ecto.assoc(st, :org) |> one()
+    with page = %ActionPage{} <- get(ActionPage, ap_id), 
+         true <- can?(st, [:manage_action_pages])
+    do
       new_name = org.name <> "/" <> ActionPage.name_path(page.name)
-      try_create_copy(org, page, new_name)
+      try_create_copy(org, page, new_name) 
     else 
-      {:error, "action page not found"}
+      nil -> {:error, msg_ext("action page not found", "not_found") }
+      false -> {:error, cant_msg([:manage_action_pages])}
     end
   end
 
-  def run(_, _, _), do: :ok
+
+  def run(%Confirm{operation: add_partner}, :reject, _), do: :ok
 end

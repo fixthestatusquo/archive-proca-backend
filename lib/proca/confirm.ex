@@ -116,13 +116,17 @@ defmodule Proca.Confirm do
     if confirm.charges <= 0 do 
       {:error, "expired"}
     else
-      confirm 
-      |> change(charges: confirm.charges - 1) 
-      |> update!
-      |> Confirm.Operation.run(:confirm, staffer)
+      case Confirm.Operation.run(confirm, :confirm, staffer) do 
+        {:error, e} -> {:error, e}
+        ok -> 
+          confirm 
+          |> change(charges: confirm.charges - 1) 
+          |> update!
+
+          ok
+      end
     end
   end
-
 
 
   def notify_by_email(email, cnf) do 

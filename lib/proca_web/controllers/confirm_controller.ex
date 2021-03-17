@@ -9,8 +9,9 @@ defmodule ProcaWeb.ConfirmController do
   import Ecto.Changeset
   import Ecto.Query
   import Proca.Repo
-  alias Proca.{Supporter, Action, Confirm}
+  alias Proca.{Supporter, Action, Confirm, Staffer}
   alias Proca.Server.Processing
+  import ProcaWeb.Helper, only: [request_basic_auth: 2]
 
 
   @doc """
@@ -75,7 +76,7 @@ defmodule ProcaWeb.ConfirmController do
 
   defp handle_supporter(_action = %Action{supporter: sup}, "reject") do 
     case Supporter.reject(sup) do 
-      {:ok, sup2} -> :ok
+      {:ok, _} -> :ok
       {:noop, _} -> :ok
       {:error, msg} -> {:error, 400, msg}
     end
@@ -94,27 +95,40 @@ defmodule ProcaWeb.ConfirmController do
   def confirm(conn, params) do 
     with {:ok, args} <- confirm_parse_params(params),
          confirm = %Confirm{} <- get_confirm(args),
-         :ok <- handle_confirm(confirm, args.verb) do
+         :ok <- handle_confirm(confirm, args.verb, get_staffer(conn, Map.get(params, "org", nil))) do
       conn
       |> redirect(to: Map.get(args, :redir, "/"))
       |> halt()
     else
+      {:error, 401, msg} -> conn |> request_basic_auth(msg) |> halt()
       {:error, status, msg} -> conn |> resp(status, error_msg(msg)) |> halt()
-      nil -> conn |> resp(400, error_msg("wrong code")) |> halt()
+      nil -> conn |> resp(400, error_msg("code invalid")) |> halt()
     end
   end
 
-  defp handle_confirm(confirm, "accept") do 
-    case Confirm.confirm(confirm) do 
+  defp get_staffer(conn, org_name) do 
+    case Pow.Plug.current_user(conn) do 
+      nil -> nil 
+      user = %Proca.Users.User{} -> 
+        if is_nil(org_name), do: Staffer.for_user(user), else: Staffer.for_user_in_org(user, org_name)
+    end
+  end
+
+  defp handle_confirm(confirm, "accept", staffer) do 
+    case Confirm.confirm(confirm, staffer) do 
       :ok -> :ok
+      {:ok, _} -> :ok
+      {:error, "unauthorized"} -> {:error, 401, "unauthorized"}
       {:error, "expired"} -> {:error, 400, "expired"}
       {:error, msg} -> {:error, 500, error_msg(msg)}
     end
   end
 
-  defp handle_confirm(confirm, "reject") do 
-    case Confirm.reject(confirm) do
+  defp handle_confirm(confirm, "reject", staffer) do 
+    case Confirm.reject(confirm, staffer) do
       :ok -> :ok
+      {:ok, _} -> :ok
+      {:error, "unauthorized"} -> {:error, 401, "Unauthorized"}
       {:error, msg} -> {:error, 500, error_msg(msg)}
     end
   end
@@ -136,6 +150,7 @@ defmodule ProcaWeb.ConfirmController do
     if args.valid? do 
       {:ok, apply_changes(args)}
     else 
+      IO.inspect(args)
       {:error, 400, "malformed link"}
     end
   end
@@ -157,6 +172,6 @@ defmodule ProcaWeb.ConfirmController do
   end
 
   defp error_msg(msg = %Ecto.Changeset{}) do 
-    ProcaWeb.Helper.format_errors(msg) |> Jason.encode!
+    %{errors: ProcaWeb.Helper.format_errors(msg)} |> Jason.encode!
   end
 end 

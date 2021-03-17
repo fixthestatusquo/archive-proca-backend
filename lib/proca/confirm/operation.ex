@@ -1,8 +1,10 @@
-defprotocol Proca.Confirm.Operation do 
+defmodule Proca.Confirm.Operation do 
   alias Proca.Confirm
-  alias Proca.Staffer
-  alias Ecto.Changeset
 
-  @spec run(Confirm, :confirm | :reject, Staffer | nil) :: :ok | {:error, bitstring() | Changeset}
-  def run(confirm, verb, staffer)
+  def run(%Confirm{operation: op} = cnf, verb, sup) do 
+    apply(mod(op), :run, [cnf, verb, sup])
+  end
+
+  def mod(:add_partner), do: Proca.Confirm.AddPartner
+  def mod(:confirm_action), do: Proca.Confirm.ConfirmAction
 end 
