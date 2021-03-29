@@ -1,7 +1,7 @@
-# [Proca - progressive campaigning](https://proca.foundation) widget
+# [Proca - Progressive Campaigning](https://proca.app) backend
 
-Proca backend is an Elixir app that uses PostgreSQL as data store and RabbitMQ
-for data processing. It is the backend / datastore for [proca-widget](https://github.com/fixthestatusquo/proca).
+An universal action tool backend for JAM stack apps.
+Built as a backend to [Proca Widget](https://github.com/FixTheStatusQuo/proca).
 
 It is made with love, elixir and hope we can change the world for the better.
 
@@ -21,9 +21,24 @@ You'll need the following packages:
 
     erlang-base erlang-dev erlang-parsetools erlang-xmerl elixir
 
-## RabbitMQ (version?)
+## RabbitMQ
 
-## NodeJS (>= 10?) / npm >= 7?
+## NodeJS (14.*.*)
+
+## Features
+
+- Headless 
+- GraphQL API 
+- Fine grained permission system for users organised in Organisatons (Orgs)
+- Authentication using HTTP Basic Auth or JWT (to use external identity and auth system).
+- Stores campaign tree (action pages organised in campaigns, where different Orgs can run a coalition)
+- Stores actions and member personal data, personal data is E2E encrypted at rest. Only the Org that is data controller can decrypt it.
+- Validates personal data types using various personal data schemas (email+postcode, European Citizen Initaitive, and so on)
+- Handles GDPR consent (with optional double opt-in), and action staging (moderation, filtering before it is accepted)
+- Sends emails (thank you emails, opt in emails, emails-to-targets) through various mail backends (Mailjet, AWS SES, more coming)
+- Pluggable action processing on RabbitMQ queue 
+- Forward actions to AWS SQS, CRMs (needs a decrypting gateway proxy at Org premises)
+- Export action data in CSV
 
 # Development setup
 
@@ -40,7 +55,7 @@ You'll need sudo to run the parts of the script that configure PostgreSQL.
 The seeds.exs command will print out your login and password:
 
     #####
-    #####   Created Admin user aaron@wemove.eu  #####
+    #####   Created Admin user email@example.com  #####
     #####   Password: VERY_RANDOM_PASSWORD
     #####
 
